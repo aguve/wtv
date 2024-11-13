@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "1074648315658",
+    "project_id": "watoview",
+    "storage_bucket": "watoview.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1074648315658:android:792b648fbaf7cb5439ecf3",
+        "android_client_info": {
+          "package_name": "com.example.wtv"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDz78D6NG9BIhm2kpAtauzf0V-yT56p0v8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
