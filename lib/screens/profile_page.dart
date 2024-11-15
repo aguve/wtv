@@ -1,14 +1,17 @@
 import 'dart:io';
 
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:wtv/endpoints/api_petitions.dart';
+import 'package:wtv/models/genres_group.dart';
 import 'package:wtv/models/streaming_provider.dart';
 import 'package:wtv/screens/home_page.dart';
 import 'package:wtv/screens/reviews_page.dart';
 import 'package:wtv/screens/social_page.dart';
+import 'package:wtv/screens/splash.dart';
 
 class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
@@ -22,6 +25,8 @@ class _ProfilePageState extends State<ProfilePage> {
   //final TextEditingController _mailController = TextEditingController();
   final Set<int> _selectedProviders = {};
   final Set<String> _selectedGenres = <String>{};
+  final nameProviders = [];
+  final genreNames = [];
 
   void initState() {
     super.initState();
@@ -39,11 +44,46 @@ class _ProfilePageState extends State<ProfilePage> {
     return Scaffold(
       appBar: AppBar(
         title: Text('Hola $uName'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.person),
-            onPressed: () {
-              // Acció per a l'icona de perfil
+        actions: <Widget>[
+          PopupMenuButton<String>(
+            icon: Icon(Icons.more_vert),
+            onSelected: (String result) async {
+              /* ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('Opció seleccionada: $result'))); */
+              switch (result) {
+                case 'logout':
+                  await FirebaseAuth.instance.signOut();
+                  Navigator.popUntil(context, (route) => route.isFirst);
+                  Navigator.pushReplacement(context,
+                      MaterialPageRoute(builder: (context) => Splash()));
+                  break;
+                case 'settings':
+                  break;
+              }
+            },
+            itemBuilder: (BuildContext context) {
+              return [
+                PopupMenuItem<String>(
+                  value: 'logout',
+                  child: Row(
+                    children: [
+                      Text('Sortir'),
+                      SizedBox(width: 25),
+                      Icon(Icons.logout),
+                    ],
+                  ),
+                ),
+                PopupMenuItem<String>(
+                  value: 'settings',
+                  child: Row(
+                    children: [
+                      Text('Opcions'),
+                      SizedBox(width: 5),
+                      Icon(Icons.settings),
+                    ],
+                  ),
+                ),
+              ];
             },
           ),
         ],
@@ -66,10 +106,10 @@ class _ProfilePageState extends State<ProfilePage> {
                                 FirebaseAuth.instance.currentUser!.photoURL!)
                             : const AssetImage('assets/default_avatar.jpg')
                                 as ImageProvider,
-                    child: const Icon(
+                    /* child: const Icon(
                       Icons.camera_alt,
                       size: 30,
-                    ),
+                    ), */
                   ),
                 ),
               ),
@@ -85,7 +125,9 @@ class _ProfilePageState extends State<ProfilePage> {
                   labelText: 'Nom del perfil',
                   border: const OutlineInputBorder(),
                   suffixIcon: InkWell(
-                    onTap: () => editUserName,
+                    onTap: () {
+                      editUserName();
+                    },
                     child: Icon(Icons.send),
                   ),
                 ),
@@ -130,6 +172,7 @@ class _ProfilePageState extends State<ProfilePage> {
                                       ),
                                       itemBuilder: (context, index) {
                                         final provider = snapshot.data![index];
+                                        nameProviders.add(provider.name);
                                         final isSelected =
                                             _selectedProviders.contains(index);
                                         return GestureDetector(
@@ -178,6 +221,41 @@ class _ProfilePageState extends State<ProfilePage> {
                                 }
                               },
                             ),
+                            SizedBox(height: 16),
+                            ElevatedButton(
+                              onPressed: () async {
+                                final user = FirebaseAuth.instance.currentUser;
+                                if (user == null) return;
+                                final uid = user.uid;
+                                List<Map<String, dynamic>> selectedPlatforms =
+                                    [];
+                                for (var index in _selectedProviders) {
+                                  var tmpi = index;
+                                  var platName = nameProviders[tmpi];
+                                  selectedPlatforms.add({
+                                    'index': index,
+                                    'name': platName,
+                                  });
+                                }
+                                try {
+                                  // Guardar les plataformes seleccionades a Firestore
+                                  await FirebaseFirestore.instance
+                                      .collection('users')
+                                      .doc(uid)
+                                      .set({
+                                    'selectedStreamingPlatforms':
+                                        selectedPlatforms,
+                                  }, SetOptions(merge: true));
+
+                                  print('Plataformas guardadas con éxito');
+                                } catch (e) {
+                                  print('Error al guardar en Firestore: $e');
+                                }
+                                print(
+                                    'Canals seleccionats: $_selectedProviders');
+                              },
+                              child: const Text("Guardar canals"),
+                            ),
                           ],
                         ),
                       ),
@@ -213,6 +291,7 @@ class _ProfilePageState extends State<ProfilePage> {
                                       itemCount: snapshot.data!.length,
                                       itemBuilder: (context, index) {
                                         final genre = snapshot.data![index];
+                                        //genreNames.add(genre.name);
                                         final isSelected =
                                             _selectedGenres.contains(genre);
 
@@ -265,12 +344,34 @@ class _ProfilePageState extends State<ProfilePage> {
 
                             // Botó per confirmar grups de tags
                             ElevatedButton(
-                              onPressed: () {
-                                // definir funció per guardar tags
+                              onPressed: () async {
+                                final user = FirebaseAuth.instance.currentUser;
+                                if (user == null) return;
+                                final uid = user.uid;
+
+                                List<String> tagNames = [];
+                                for (var genre in _selectedGenres) {
+                                  tagNames.add(genre);
+                                }
+
+                                GenreGroup group = GenreGroup(genres: tagNames);
+
+                                try {
+                                  // Guardar els tags a Firestore
+                                  await FirebaseFirestore.instance
+                                      .collection('users')
+                                      .doc(uid)
+                                      .collection('groups')
+                                      .add(group.toFirestore());
+
+                                  print('Plataformas guardadas con éxito');
+                                } catch (e) {
+                                  print('Error al guardar en Firestore: $e');
+                                }
                                 print(
-                                    'Grupos de tags seleccionados: $_selectedGenres');
+                                    'Canals seleccionats: $_selectedProviders');
                               },
-                              child: const Text("Guardar grups"),
+                              child: const Text("Guardar grup"),
                             ),
                           ],
                         ),
@@ -335,13 +436,20 @@ class _ProfilePageState extends State<ProfilePage> {
   Future<void> editUserName() async {
     var name = _nameController.text;
     await FirebaseAuth.instance.currentUser?.updateDisplayName(name);
+    await updateUserNameinFirestore(name);
     setState(() {});
   }
 
-  /* Future<void> editEmail() async {
-    var email = _mailController.text;
-    await FirebaseAuth.instance.currentUser?.updateEmail(email);
-  } */
+  Future<void> updateUserNameinFirestore(String name) async {
+    var user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      var uid = user.uid;
+      var userDoc = FirebaseFirestore.instance.collection('users').doc(uid);
+      await userDoc.set({
+        'displayName': name,
+      }, SetOptions(merge: true));
+    }
+  }
 
   Future<void> selectImage() async {
     final ImagePicker picker = ImagePicker();

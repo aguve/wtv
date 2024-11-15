@@ -24,7 +24,7 @@ class WtvApp extends StatelessWidget {
       supportedLocales: [Locale('es')],
       localizationsDelegates: [
         FirebaseUILocalizations.delegate,
-        GlobalMaterialLocalizations.delegate,
+        ...GlobalMaterialLocalizations.delegates,
         GlobalWidgetsLocalizations.delegate,
       ],
     );

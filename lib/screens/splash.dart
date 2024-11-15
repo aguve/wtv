@@ -24,7 +24,9 @@ class _SplashState extends State<Splash> {
   @override
   void initState() {
     super.initState();
-    init();
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      await init();
+    });
   }
 
   @override
@@ -53,18 +55,6 @@ class _SplashState extends State<Splash> {
   }
 
   Future<void> init() async {
-    changeStatus("Inicialitzant aplicació");
-    await Future.delayed(const Duration(milliseconds: 600));
-    changeStatus("Carregant (20%)");
-    await Future.delayed(const Duration(milliseconds: 600));
-    changeStatus("Carregant (40%)");
-    await Future.delayed(const Duration(milliseconds: 600));
-    changeStatus("Carregant (60%)");
-    await Future.delayed(const Duration(milliseconds: 600));
-    changeStatus("Carregant (80%)");
-    await Future.delayed(const Duration(milliseconds: 600));
-    changeStatus("Carregant (100%)");
-
     final user = FirebaseAuth.instance.currentUser;
 
     if (user == null) {
@@ -94,25 +84,25 @@ class _SplashState extends State<Splash> {
 
       if (userDoc.exists) {
         final data = userDoc.data();
-        final profileName = data?['profileName'] ?? '';
+        final profileName = data?['displayName'] ?? '';
         final profileImage = data?['profileImage'] ?? '';
 
-        if (profileName.isEmpty || profileImage.isEmpty) {
+        if (profileName.isEmpty && profileImage.isEmpty) {
           Navigator.pushReplacement(
               context, MaterialPageRoute(builder: (context) => ProfilePage()));
         } else {
           Navigator.pushReplacement(
               context, MaterialPageRoute(builder: (context) => HomePage()));
         }
-      } else {
+      } /*  else {
         Navigator.pushReplacement(
             context, MaterialPageRoute(builder: (context) => ProfilePage()));
-      }
+      } */
     }
   }
 
-  void changeStatus(String st) {
+  /* void changeStatus(String st) {
     status = st;
     setState(() {});
-  }
+  } */
 }
