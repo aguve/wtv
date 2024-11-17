@@ -32,12 +32,43 @@ class _ProfilePageState extends State<ProfilePage> {
     super.initState();
     _providers = ApiPetitions.fetchProviders();
     _genres = ApiPetitions.fetchGenres();
+    _checkAndAddUserToRegisteredUsers(); // Afegir comprovació i afegit a la base de dades
   }
 
   late Future<List<StreamingProvider>> _providers;
   late Future<List<String>> _genres = ApiPetitions.fetchGenres();
   String uName =
       FirebaseAuth.instance.currentUser!.displayName ?? 'default name';
+
+  Future<void> _checkAndAddUserToRegisteredUsers() async {
+    try {
+      // Obtenir l'usuari actual
+      final user = FirebaseAuth.instance.currentUser;
+      if (user != null) {
+        final email = user.email;
+        final uid = user.uid;
+
+        // Comprovar si l'usuari ja existeix a la col·lecció 'registeredUsers'
+        var querySnapshot = await FirebaseFirestore.instance
+            .collection('registeredUsers')
+            .where('email', isEqualTo: email)
+            .get();
+
+        if (querySnapshot.docs.isEmpty) {
+          // Si no trobem cap document, afegim l'usuari a la col·lecció
+          await FirebaseFirestore.instance.collection('registeredUsers').add({
+            'email': email,
+            'uid': uid,
+          });
+          print("Usuari afegit a registeredUsers.");
+        } else {
+          print("L'usuari ja existeix a registeredUsers.");
+        }
+      }
+    } catch (e) {
+      print("Error al comprovar i afegir l'usuari: $e");
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -402,7 +433,7 @@ class _ProfilePageState extends State<ProfilePage> {
           } else if (index == 2) {
             Navigator.push(
               context,
-              MaterialPageRoute(builder: (context) => const SocialPage()),
+              MaterialPageRoute(builder: (context) => SocialPage()),
             );
           } else if (index == 3) {
             Navigator.push(

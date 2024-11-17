@@ -17,15 +17,17 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-  late Future<List<Map<String, dynamic>>> _items;
+  late Future<List<Map<String, dynamic>>> _filmsAndTv4u;
   late Future<List<List<String>>> genresFromFirestore;
   late Future<List<List<Map<String, dynamic>>>> moviesAndSeries;
-  static const String apiKey = 'c399b9dc6a126d4c4de99e265544cabb';
+  final String apiKey = 'c399b9dc6a126d4c4de99e265544cabb';
+  late final List<List<String>> selectedTags;
 
   @override
   void initState() {
     super.initState();
-    _items = fetchMoviesAndSeries(FirebaseAuth.instance.currentUser!.uid);
+    _filmsAndTv4u =
+        fetchMoviesAndSeries(FirebaseAuth.instance.currentUser!.uid);
     genresFromFirestore =
         getGenresLists(FirebaseAuth.instance.currentUser!.uid);
   }
@@ -54,7 +56,7 @@ class _HomePageState extends State<HomePage> {
         final seriesData = json.decode(seriesResponse.body)['results'] as List;
 
         // Filtrar las películas que coinciden con las plataformas seleccionadas
-        var first5movies = moviesData.take(10);
+        var first5movies = moviesData.take(20);
         List<Map<String, dynamic>> movies = [];
 
         for (var item in first5movies) {
@@ -72,7 +74,7 @@ class _HomePageState extends State<HomePage> {
           }
         }
 
-        var first5series = seriesData.take(10);
+        var first5series = seriesData.take(20);
         List<Map<String, dynamic>> series = [];
 
         for (var item in first5series) {
@@ -100,41 +102,72 @@ class _HomePageState extends State<HomePage> {
   }
 
   //
-  Future<List<Map<String, dynamic>>> fetchMoviesAndSeriesByGenres(
-      List<String> genres) async {
-    List<Map<String, dynamic>> moviesAndSeries = [];
+  Future<List<Map<String, dynamic>>> searchMovies(
+      List<String> tags, String apiKey) async {
+    Map<String, int> genresMap = await getGenresMap(apiKey);
+    String url =
+        'https://api.themoviedb.org/3/discover/movie?api_key=$apiKey&language=es-ES&with_genres=';
 
-    for (var genre in genres) {
-      // Obtener las películas por género
-      final genreQuery = Uri.parse(
-          'https://api.themoviedb.org/3/discover/movie?api_key=$apiKey&with_genres=$genre&sort_by=release_date.desc&page=1');
-      final response = await http.get(genreQuery);
+    List<int> genreIds = tags
+        .map((tag) => genresMap[tag]) // Mapea los tags a los IDs de géneros
+        .where((id) => id != null) // Filtra los valores nulos
+        .cast<int>() // Convierte el tipo de la lista a List<int>
+        .toList(); // Convierte a lista
 
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        moviesAndSeries.addAll(data['results']
-            .take(4)
-            .toList()); // Tomamos las primeras 4 películas
-      }
+    String genreIdsString = genreIds.join(',');
 
-      // Obtener las series por género
-      final seriesQuery = Uri.parse(
-          'https://api.themoviedb.org/3/discover/tv?api_key=$apiKey&with_genres=$genre&sort_by=release_date.desc&page=1');
-      final seriesResponse = await http.get(seriesQuery);
+    url += genreIdsString;
 
-      if (seriesResponse.statusCode == 200) {
-        final seriesData = json.decode(seriesResponse.body);
-        moviesAndSeries.addAll(seriesData['results']
-            .take(4)
-            .toList()); // Tomamos las primeras 4 series
-      }
+    final response = await http.get(Uri.parse(url));
+
+    if (response.statusCode == 200) {
+      var data = json.decode(response.body)['results'];
+      return data.map((item) {
+        return {
+          'title': item['title'],
+          'imageUrl': 'https://image.tmdb.org/t/p/w500${item['poster_path']}',
+          'platforms':
+              item['platforms'] ?? [], // Asegúrate de que platforms no sea null
+        };
+      }).toList();
+    } else {
+      throw Exception('Error al cargar las películas');
     }
+  }
 
-    return moviesAndSeries; // Devuelve una lista plana de películas y series
+  Future<List<Map<String, dynamic>>> searchSeries(
+      List<String> tags, String apiKey) async {
+    Map<String, int> genresMap = await getGenresMap(apiKey);
+    String url =
+        'https://api.themoviedb.org/3/discover/tv?api_key=$apiKey&language=es-ES&with_genres=';
+
+    List<int> genreIds = tags
+        .map((tag) => genresMap[tag]) // Mapea los tags a los IDs de géneros
+        .where((id) => id != null) // Filtra los valores nulos
+        .cast<int>() // Convierte el tipo de la lista a List<int>
+        .toList(); // Convierte a lista
+
+    String genreIdsString = genreIds.join(',');
+
+    url += genreIdsString;
+
+    final response = await http.get(Uri.parse(url));
+
+    if (response.statusCode == 200) {
+      var data = json.decode(response.body)['results'];
+      return data.map((item) {
+        return {
+          'title': item['name'],
+          'imageUrl': 'https://image.tmdb.org/t/p/w500${item['poster_path']}',
+          'platforms': item['platforms'] ?? [],
+        };
+      }).toList();
+    } else {
+      throw Exception('Error al cargar las series');
+    }
   }
 
   Future<List<String>> fetchPlatforms(int id, String type) async {
-    const String apiKey = 'c399b9dc6a126d4c4de99e265544cabb';
     final String url =
         'https://api.themoviedb.org/3/$type/$id/watch/providers?api_key=$apiKey';
 
@@ -149,6 +182,70 @@ class _HomePageState extends State<HomePage> {
       }
     }
     return [];
+  }
+
+  Future<Map<String, int>> getGenresMap(String apiKey) async {
+    final movieGenresUrl =
+        'https://api.themoviedb.org/3/genre/movie/list?api_key=$apiKey&language=es-ES';
+    final tvGenresUrl =
+        'https://api.themoviedb.org/3/genre/tv/list?api_key=$apiKey&language=es-ES';
+
+    try {
+      final movieResponse = await http.get(Uri.parse(movieGenresUrl));
+      final tvResponse = await http.get(Uri.parse(tvGenresUrl));
+
+      if (movieResponse.statusCode == 200 && tvResponse.statusCode == 200) {
+        // Parse the movie genres and tv genres
+        final movieGenres = json.decode(movieResponse.body)['genres'] as List;
+        final tvGenres = json.decode(tvResponse.body)['genres'] as List;
+
+        // Map genre names to ids for movies and tv
+        Map<String, int> genresMap = {};
+
+        // Map movie genres
+        for (var genre in movieGenres) {
+          genresMap[genre['name']] = genre['id'];
+        }
+
+        // Map tv genres
+        for (var genre in tvGenres) {
+          genresMap[genre['name']] = genre['id'];
+        }
+
+        return genresMap;
+      } else {
+        throw Exception('Failed to load genres');
+      }
+    } catch (e) {
+      print('Error: $e');
+      return {};
+    }
+  }
+
+  Future<List<String>> fetchGenres() async {
+    const String apiKey = 'c399b9dc6a126d4c4de99e265544cabb';
+    const String url =
+        'https://api.themoviedb.org/3/genre/movie/list?api_key=$apiKey&language=es-ES';
+
+    try {
+      final response = await http.get(Uri.parse(url));
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+
+        List<String> genres = [];
+        for (var genre in data['genres']) {
+          genres.add(genre['name']);
+        }
+
+        return genres;
+      } else {
+        throw Exception('Error al obtener los géneros de TMDB');
+      }
+    } catch (e) {
+      print('Error: $e');
+      return [];
+    }
   }
 
   Future<List<List<String>>> getGenresLists(String uid) async {
@@ -318,7 +415,7 @@ class _HomePageState extends State<HomePage> {
               SizedBox(
                 height: 450,
                 child: FutureBuilder<List<Map<String, dynamic>>>(
-                  future: _items,
+                  future: _filmsAndTv4u,
                   builder: (context, snapshot) {
                     if (snapshot.connectionState == ConnectionState.waiting) {
                       return const Center(child: CircularProgressIndicator());
@@ -351,7 +448,7 @@ class _HomePageState extends State<HomePage> {
                                 // Imagen del carrusel
                                 Flexible(
                                   child: Container(
-                                    height: 320,
+                                    height: 340,
                                     decoration: BoxDecoration(
                                       borderRadius: const BorderRadius.only(
                                         topLeft: Radius.circular(10),
@@ -406,6 +503,133 @@ class _HomePageState extends State<HomePage> {
                   style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
               const SizedBox(height: 10),
               SizedBox(
+                height: 450,
+                child: FutureBuilder<List<List<String>>>(
+                  future: genresFromFirestore,
+                  builder: (context, snapshot) {
+                    if (snapshot.connectionState == ConnectionState.waiting) {
+                      return const Center(child: CircularProgressIndicator());
+                    } else if (snapshot.hasError) {
+                      return Center(child: Text('Error: ${snapshot.error}'));
+                    } else if (snapshot.hasData) {
+                      final selectedTags = snapshot.data!;
+
+                      return ListView.builder(
+                        itemCount: selectedTags.length,
+                        itemBuilder: (context, index) {
+                          final tagList = selectedTags[index];
+
+                          return FutureBuilder<
+                              List<List<Map<String, dynamic>>>>(
+                            // Modificamos el tipo aquí
+                            future: Future.wait([
+                              searchMovies(tagList, apiKey), // Buscar películas
+                              searchSeries(tagList, apiKey), // Buscar series
+                            ]),
+                            builder: (context, snapshot) {
+                              if (snapshot.connectionState ==
+                                  ConnectionState.waiting) {
+                                return const Center(
+                                    child: CircularProgressIndicator());
+                              } else if (snapshot.hasError) {
+                                return Center(
+                                    child: Text('Error: ${snapshot.error}'));
+                              } else if (snapshot.hasData) {
+                                final movies = snapshot.data![0]; // Películas
+                                final series = snapshot.data![1]; // Series
+
+                                return Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    // Mostrar el título con los tags
+                                    Padding(
+                                      padding: const EdgeInsets.all(8.0),
+                                      child: Text(
+                                        'Géneros: ${tagList.join(", ")}',
+                                        style: const TextStyle(
+                                            fontSize: 20,
+                                            fontWeight: FontWeight.bold),
+                                      ),
+                                    ),
+
+                                    // ListView horizontal para las películas
+                                    SizedBox(
+                                      height: 250,
+                                      child: ListView.builder(
+                                        scrollDirection: Axis.horizontal,
+                                        itemCount: movies.length,
+                                        itemBuilder: (context, movieIndex) {
+                                          final movie = movies[movieIndex];
+                                          return Card(
+                                            margin: const EdgeInsets.symmetric(
+                                                horizontal: 8.0),
+                                            child: Column(
+                                              children: [
+                                                Image.network(movie['imageUrl'],
+                                                    height: 150,
+                                                    width: 100,
+                                                    fit: BoxFit.cover),
+                                                Text(movie['title'],
+                                                    style: TextStyle(
+                                                        fontWeight:
+                                                            FontWeight.bold)),
+                                                Text(
+                                                    'Plataforma: ${movie['platforms'].join(', ')}'),
+                                              ],
+                                            ),
+                                          );
+                                        },
+                                      ),
+                                    ),
+
+                                    // ListView horizontal para las series
+                                    SizedBox(
+                                      height: 250,
+                                      child: ListView.builder(
+                                        scrollDirection: Axis.horizontal,
+                                        itemCount: series.length,
+                                        itemBuilder: (context, seriesIndex) {
+                                          final serie = series[seriesIndex];
+                                          return Card(
+                                            margin: const EdgeInsets.symmetric(
+                                                horizontal: 8.0),
+                                            child: Column(
+                                              children: [
+                                                Image.network(serie['imageUrl'],
+                                                    height: 150,
+                                                    width: 100,
+                                                    fit: BoxFit.cover),
+                                                Text(serie['title'],
+                                                    style: TextStyle(
+                                                        fontWeight:
+                                                            FontWeight.bold)),
+                                                Text(
+                                                    'Plataforma: ${serie['platforms'].join(', ')}'),
+                                              ],
+                                            ),
+                                          );
+                                        },
+                                      ),
+                                    ),
+                                  ],
+                                );
+                              } else {
+                                return Center(
+                                    child:
+                                        Text('No se encontraron resultados.'));
+                              }
+                            },
+                          );
+                        },
+                      );
+                    } else {
+                      return const Center(
+                          child: Text('No se encontraron géneros.'));
+                    }
+                  },
+                ),
+              ),
+              SizedBox(
                 height: 80,
                 child: ListView.builder(
                   scrollDirection: Axis.horizontal,
@@ -459,7 +683,7 @@ class _HomePageState extends State<HomePage> {
           } else if (index == 2) {
             Navigator.push(
               context,
-              MaterialPageRoute(builder: (context) => const SocialPage()),
+              MaterialPageRoute(builder: (context) => SocialPage()),
             );
           } else if (index == 3) {
             Navigator.push(

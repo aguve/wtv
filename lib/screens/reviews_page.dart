@@ -1,8 +1,10 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:wtv/screens/custom_search_delegate.dart';
 import 'package:wtv/screens/home_page.dart';
 import 'package:wtv/screens/profile_page.dart';
 import 'package:wtv/screens/social_page.dart';
+import 'package:wtv/screens/splash.dart';
 
 class ReviewsPage extends StatelessWidget {
   const ReviewsPage({super.key});
@@ -18,11 +20,46 @@ class ReviewsPage extends StatelessWidget {
           },
           icon: const Icon(Icons.search),
         ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.person),
-            onPressed: () {
-              // Acció per a l'icona de perfil
+        actions: <Widget>[
+          PopupMenuButton<String>(
+            icon: Icon(Icons.more_vert),
+            onSelected: (String result) async {
+              /* ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('Opció seleccionada: $result'))); */
+              switch (result) {
+                case 'logout':
+                  await FirebaseAuth.instance.signOut();
+                  Navigator.popUntil(context, (route) => route.isFirst);
+                  Navigator.pushReplacement(context,
+                      MaterialPageRoute(builder: (context) => Splash()));
+                  break;
+                case 'settings':
+                  break;
+              }
+            },
+            itemBuilder: (BuildContext context) {
+              return [
+                PopupMenuItem<String>(
+                  value: 'logout',
+                  child: Row(
+                    children: [
+                      Text('Sortir'),
+                      SizedBox(width: 25),
+                      Icon(Icons.logout),
+                    ],
+                  ),
+                ),
+                PopupMenuItem<String>(
+                  value: 'settings',
+                  child: Row(
+                    children: [
+                      Text('Opcions'),
+                      SizedBox(width: 5),
+                      Icon(Icons.settings),
+                    ],
+                  ),
+                ),
+              ];
             },
           ),
         ],
@@ -46,7 +83,7 @@ class ReviewsPage extends StatelessWidget {
           } else if (index == 2) {
             Navigator.push(
               context,
-              MaterialPageRoute(builder: (context) => const SocialPage()),
+              MaterialPageRoute(builder: (context) => SocialPage()),
             );
           } else if (index == 3) {
             Navigator.push(
