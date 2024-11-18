@@ -5,7 +5,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
-import 'package:wtv/screens/custom_search_delegate.dart';
+import 'package:wtv/models/movie_list.dart' as moviesResult;
+import 'package:wtv/models/series_list.dart' as seriesResult;
 import 'package:wtv/screens/profile_page.dart';
 import 'package:wtv/screens/reviews_page.dart';
 import 'package:wtv/screens/social_page.dart';
@@ -38,11 +39,10 @@ class _HomePageState extends State<HomePage> {
     final String seriesUrl =
         'https://api.themoviedb.org/3/trending/tv/week?api_key=$apiKey';
 
-    // Obtener las plataformas seleccionadas del usuario
+    // plataformes de l'usuari
     List<Map<String, dynamic>> selectedPlatforms =
         await getSelectedPlatforms(uid);
 
-    // Extraemos solo los nombres de las plataformas seleccionadas
     List selectedPlatformNames =
         selectedPlatforms.map((platform) => platform['name']).toList();
 
@@ -55,10 +55,9 @@ class _HomePageState extends State<HomePage> {
         final moviesData = json.decode(moviesResponse.body)['results'] as List;
         final seriesData = json.decode(seriesResponse.body)['results'] as List;
 
-        // Filtrar las películas que coinciden con las plataformas seleccionadas
+        // Filtrar las pelis que coincideixen amb les plataformes seleccionades
         var first5movies = moviesData.take(20);
         List<Map<String, dynamic>> movies = [];
-
         for (var item in first5movies) {
           final platforms = await fetchPlatforms(item['id'], 'movie');
           final filteredPlatforms = platforms
@@ -74,9 +73,9 @@ class _HomePageState extends State<HomePage> {
           }
         }
 
+        // Filtrar las series que coincideixen amb les plataformes seleccionades
         var first5series = seriesData.take(20);
         List<Map<String, dynamic>> series = [];
-
         for (var item in first5series) {
           final platforms = await fetchPlatforms(item['id'], 'tv');
           final filteredPlatforms = platforms
@@ -121,15 +120,16 @@ class _HomePageState extends State<HomePage> {
     final response = await http.get(Uri.parse(url));
 
     if (response.statusCode == 200) {
-      var data = json.decode(response.body)['results'];
-      return data.map((item) {
+      final movieList = moviesResult.movieListFromJson(response.body);
+      List returnData = movieList.results.map((moviesResult.Result item) {
         return {
-          'title': item['title'],
-          'imageUrl': 'https://image.tmdb.org/t/p/w500${item['poster_path']}',
-          'platforms':
-              item['platforms'] ?? [], // Asegúrate de que platforms no sea null
+          'title': item.title,
+          'imageUrl': 'https://image.tmdb.org/t/p/w500${item.posterPath}',
+          'platforms': <String>[], // paltforms cant be null
         };
       }).toList();
+      debugPrint(returnData.runtimeType.toString());
+      return returnData as List<Map<String, dynamic>>;
     } else {
       throw Exception('Error al cargar las películas');
     }
@@ -154,14 +154,15 @@ class _HomePageState extends State<HomePage> {
     final response = await http.get(Uri.parse(url));
 
     if (response.statusCode == 200) {
-      var data = json.decode(response.body)['results'];
-      return data.map((item) {
+      final serieList = seriesResult.serieListFromJson(response.body);
+      List returnData = serieList.results.map((seriesResult.Result item) {
         return {
-          'title': item['name'],
-          'imageUrl': 'https://image.tmdb.org/t/p/w500${item['poster_path']}',
-          'platforms': item['platforms'] ?? [],
+          'title': item.name,
+          'imageUrl': 'https://image.tmdb.org/t/p/w500${item.posterPath}',
+          'platforms': <String>[], // paltforms cant be null
         };
       }).toList();
+      return returnData as List<Map<String, dynamic>>;
     } else {
       throw Exception('Error al cargar las series');
     }
@@ -354,18 +355,10 @@ class _HomePageState extends State<HomePage> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('WTV'),
-        leading: IconButton(
-          onPressed: () {
-            showSearch(context: context, delegate: CustomSearchDelegate());
-          },
-          icon: const Icon(Icons.search),
-        ),
         actions: <Widget>[
           PopupMenuButton<String>(
             icon: Icon(Icons.more_vert),
             onSelected: (String result) async {
-              /* ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('Opció seleccionada: $result'))); */
               switch (result) {
                 case 'logout':
                   await FirebaseAuth.instance.signOut();
@@ -410,7 +403,7 @@ class _HomePageState extends State<HomePage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text('Per a tu:',
+              const Text('Darrament a les teves plataformes:',
                   style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
               SizedBox(
                 height: 450,
@@ -499,7 +492,7 @@ class _HomePageState extends State<HomePage> {
                 ),
               ),
               const SizedBox(height: 10),
-              const Text('Vist darrerament:',
+              const Text('Per gustos:',
                   style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
               const SizedBox(height: 10),
               SizedBox(
@@ -521,9 +514,8 @@ class _HomePageState extends State<HomePage> {
 
                           return FutureBuilder<
                               List<List<Map<String, dynamic>>>>(
-                            // Modificamos el tipo aquí
                             future: Future.wait([
-                              searchMovies(tagList, apiKey), // Buscar películas
+                              searchMovies(tagList, apiKey), // Buscar pelis
                               searchSeries(tagList, apiKey), // Buscar series
                             ]),
                             builder: (context, snapshot) {
@@ -535,26 +527,34 @@ class _HomePageState extends State<HomePage> {
                                 return Center(
                                     child: Text('Error: ${snapshot.error}'));
                               } else if (snapshot.hasData) {
-                                final movies = snapshot.data![0]; // Películas
-                                final series = snapshot.data![1]; // Series
+                                final movies = snapshot.data![0]; // pelis
+                                final series = snapshot.data![1]; // series
 
                                 return Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    // Mostrar el título con los tags
                                     Padding(
                                       padding: const EdgeInsets.all(8.0),
                                       child: Text(
-                                        'Géneros: ${tagList.join(", ")}',
+                                        'Gèneres: ${tagList.join(", ")}',
                                         style: const TextStyle(
                                             fontSize: 20,
                                             fontWeight: FontWeight.bold),
                                       ),
                                     ),
-
-                                    // ListView horizontal para las películas
+                                    Padding(
+                                      padding: const EdgeInsets.all(8.0),
+                                      child: Text(
+                                        'Pelis',
+                                        style: const TextStyle(
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.bold,
+                                            color: Colors.black54),
+                                      ),
+                                    ),
+                                    // ListView de pelis
                                     SizedBox(
-                                      height: 250,
+                                      height: 200,
                                       child: ListView.builder(
                                         scrollDirection: Axis.horizontal,
                                         itemCount: movies.length,
@@ -569,10 +569,10 @@ class _HomePageState extends State<HomePage> {
                                                     height: 150,
                                                     width: 100,
                                                     fit: BoxFit.cover),
-                                                Text(movie['title'],
+                                                /* Text(movie['title'],
                                                     style: TextStyle(
                                                         fontWeight:
-                                                            FontWeight.bold)),
+                                                            FontWeight.bold)), */
                                                 Text(
                                                     'Plataforma: ${movie['platforms'].join(', ')}'),
                                               ],
@@ -581,10 +581,19 @@ class _HomePageState extends State<HomePage> {
                                         },
                                       ),
                                     ),
-
-                                    // ListView horizontal para las series
+                                    SizedBox(height: 10),
+                                    Padding(
+                                      padding: const EdgeInsets.all(8.0),
+                                      child: Text(
+                                        'Series',
+                                        style: const TextStyle(
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.bold,
+                                            color: Colors.black54),
+                                      ),
+                                    ),
                                     SizedBox(
-                                      height: 250,
+                                      height: 200,
                                       child: ListView.builder(
                                         scrollDirection: Axis.horizontal,
                                         itemCount: series.length,
@@ -599,10 +608,10 @@ class _HomePageState extends State<HomePage> {
                                                     height: 150,
                                                     width: 100,
                                                     fit: BoxFit.cover),
-                                                Text(serie['title'],
+                                                /* Text(serie['title'],
                                                     style: TextStyle(
                                                         fontWeight:
-                                                            FontWeight.bold)),
+                                                            FontWeight.bold)), */
                                                 Text(
                                                     'Plataforma: ${serie['platforms'].join(', ')}'),
                                               ],
@@ -611,12 +620,12 @@ class _HomePageState extends State<HomePage> {
                                         },
                                       ),
                                     ),
+                                    SizedBox(height: 15),
                                   ],
                                 );
                               } else {
                                 return Center(
-                                    child:
-                                        Text('No se encontraron resultados.'));
+                                    child: Text('No s\'han trobat resultats.'));
                               }
                             },
                           );
@@ -624,42 +633,9 @@ class _HomePageState extends State<HomePage> {
                       );
                     } else {
                       return const Center(
-                          child: Text('No se encontraron géneros.'));
+                          child: Text('No s\'han trobat gèneres.'));
                     }
                   },
-                ),
-              ),
-              SizedBox(
-                height: 80,
-                child: ListView.builder(
-                  scrollDirection: Axis.horizontal,
-                  itemCount: 5,
-                  itemBuilder: (context, index) {
-                    return Container(
-                      width: 80,
-                      margin: const EdgeInsets.symmetric(horizontal: 5),
-                      decoration: BoxDecoration(
-                        color: Colors.grey[300],
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                    );
-                    //print(genresFromFirestore);
-                  },
-                ),
-              ),
-              const SizedBox(height: 40),
-              const Text('Categories:',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-              const SizedBox(height: 10),
-              Container(
-                height: 100,
-                decoration: BoxDecoration(
-                  color: Colors.grey[200],
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: const Center(
-                  child: Text('Núvol de tags',
-                      style: TextStyle(color: Colors.black54)),
                 ),
               ),
             ],
