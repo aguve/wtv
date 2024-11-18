@@ -1,7 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:wtv/screens/custom_search_delegate.dart';
 import 'package:wtv/screens/home_page.dart';
 import 'package:wtv/screens/profile_page.dart';
 import 'package:wtv/screens/reviews_page.dart';
@@ -337,13 +336,8 @@ class _SocialPageState extends State<SocialPage> {
     double screenHeight = MediaQuery.of(context).size.height;
     return Scaffold(
       appBar: AppBar(
+        automaticallyImplyLeading: false,
         title: const Text('Social'),
-        leading: IconButton(
-          onPressed: () {
-            showSearch(context: context, delegate: CustomSearchDelegate());
-          },
-          icon: const Icon(Icons.search),
-        ),
         actions: <Widget>[
           PopupMenuButton<String>(
             icon: Icon(Icons.more_vert),
@@ -537,7 +531,7 @@ class _SocialPageState extends State<SocialPage> {
           } else if (index == 3) {
             Navigator.push(
               context,
-              MaterialPageRoute(builder: (context) => const ReviewsPage()),
+              MaterialPageRoute(builder: (context) => ReviewsPage()),
             );
           }
         },

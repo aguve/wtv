@@ -354,6 +354,7 @@ class _HomePageState extends State<HomePage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        automaticallyImplyLeading: false,
         title: const Text('WTV'),
         actions: <Widget>[
           PopupMenuButton<String>(
@@ -418,7 +419,7 @@ class _HomePageState extends State<HomePage> {
                       final items = snapshot.data!;
                       return CarouselSlider.builder(
                         options: CarouselOptions(
-                          height: 420.0, // Ajusta la altura según lo necesario
+                          height: 410.0,
                           autoPlay: false,
                           enlargeCenterPage: true,
                           enableInfiniteScroll: false,
@@ -664,7 +665,7 @@ class _HomePageState extends State<HomePage> {
           } else if (index == 3) {
             Navigator.push(
               context,
-              MaterialPageRoute(builder: (context) => const ReviewsPage()),
+              MaterialPageRoute(builder: (context) => ReviewsPage()),
             );
           }
         },

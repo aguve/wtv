@@ -32,7 +32,7 @@ class _ProfilePageState extends State<ProfilePage> {
     super.initState();
     _providers = ApiPetitions.fetchProviders();
     _genres = ApiPetitions.fetchGenres();
-    _checkAndAddUserToRegisteredUsers(); // Afegir comprovació i afegit a la base de dades
+    _checkAndAddUserToRegisteredUsers();
   }
 
   late Future<List<StreamingProvider>> _providers;
@@ -74,6 +74,7 @@ class _ProfilePageState extends State<ProfilePage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        automaticallyImplyLeading: false,
         title: Text('Hola $uName'),
         actions: <Widget>[
           PopupMenuButton<String>(
@@ -191,7 +192,7 @@ class _ProfilePageState extends State<ProfilePage> {
                                       child: Text('Error: ${snapshot.error}'));
                                 } else {
                                   return SizedBox(
-                                    height: 200, // Ajusta la altura
+                                    height: 300, // Ajusta la altura
                                     child: GridView.builder(
                                       itemCount: snapshot.data!.length,
                                       gridDelegate:
@@ -317,7 +318,7 @@ class _ProfilePageState extends State<ProfilePage> {
                                       child: Text('Error: ${snapshot.error}'));
                                 } else {
                                   return SizedBox(
-                                    height: 200,
+                                    height: 300,
                                     child: ListView.builder(
                                       itemCount: snapshot.data!.length,
                                       itemBuilder: (context, index) {
@@ -438,7 +439,7 @@ class _ProfilePageState extends State<ProfilePage> {
           } else if (index == 3) {
             Navigator.push(
               context,
-              MaterialPageRoute(builder: (context) => const ReviewsPage()),
+              MaterialPageRoute(builder: (context) => ReviewsPage()),
             );
           }
         },

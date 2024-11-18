@@ -8,9 +8,9 @@ class ApiPetitions {
       'c399b9dc6a126d4c4de99e265544cabb'; // La teva clau d'API
 
   static Future<List<StreamingProvider>> fetchProviders() async {
-    final String apiUrl = 'https://api.themoviedb.org/3/watch/providers/movie';
+    final String apiUrl = 'https://api.themoviedb.org/3/watch/providers/tv';
     final response = await http.get(
-        Uri.parse('$apiUrl?api_key=$apiKey&language=ca-ES&watch_region=ES'));
+        Uri.parse('$apiUrl?api_key=$apiKey&language=es-ES&watch_region=ES'));
 
     if (response.statusCode == 200) {
       final Map<String, dynamic> data = json.decode(response.body);
