@@ -100,9 +100,8 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
-  //
   Future<List<Map<String, dynamic>>> searchMovies(
-      List<String> tags, String apiKey) async {
+      List<String> tags, String apiKey, String uid) async {
     Map<String, int> genresMap = await getGenresMap(apiKey);
     String url =
         'https://api.themoviedb.org/3/discover/movie?api_key=$apiKey&language=es-ES&with_genres=';
@@ -121,22 +120,29 @@ class _HomePageState extends State<HomePage> {
 
     if (response.statusCode == 200) {
       final movieList = moviesResult.movieListFromJson(response.body);
-      List returnData = movieList.results.map((moviesResult.Result item) {
+      // Especificar explícitamente el tipo en el Future.wait
+      List<Map<String, dynamic>> returnData = await Future.wait(
+          movieList.results.map((moviesResult.Result item) async {
+        // Cridar fetchPlatforms per a cada pel·lícula
+        List<String> platforms = await fetchPlatforms(item.id, 'movie');
+        List<String> plat = platforms.isNotEmpty ? [platforms.first] : [];
+
         return {
           'title': item.title,
           'imageUrl': 'https://image.tmdb.org/t/p/w500${item.posterPath}',
-          'platforms': <String>[], // paltforms cant be null
+          'platforms': plat, // Afegir el primer element de platforms
         };
-      }).toList();
+      }).toList());
+
       debugPrint(returnData.runtimeType.toString());
-      return returnData as List<Map<String, dynamic>>;
+      return returnData; // Ja no cal fer cast
     } else {
       throw Exception('Error al cargar las películas');
     }
   }
 
   Future<List<Map<String, dynamic>>> searchSeries(
-      List<String> tags, String apiKey) async {
+      List<String> tags, String apiKey, String uid) async {
     Map<String, int> genresMap = await getGenresMap(apiKey);
     String url =
         'https://api.themoviedb.org/3/discover/tv?api_key=$apiKey&language=es-ES&with_genres=';
@@ -155,14 +161,18 @@ class _HomePageState extends State<HomePage> {
 
     if (response.statusCode == 200) {
       final serieList = seriesResult.serieListFromJson(response.body);
-      List returnData = serieList.results.map((seriesResult.Result item) {
+      List<Map<String, dynamic>> returnData = await Future.wait(
+          serieList.results.map((seriesResult.Result item) async {
+        List<String> platforms = await fetchPlatforms(item.id, 'tv');
+        List<String> plat = platforms.isNotEmpty ? [platforms.first] : [];
         return {
           'title': item.name,
           'imageUrl': 'https://image.tmdb.org/t/p/w500${item.posterPath}',
-          'platforms': <String>[], // paltforms cant be null
+          'platforms': plat, // Afegir el primer element de platforms
         };
-      }).toList();
-      return returnData as List<Map<String, dynamic>>;
+      }).toList());
+
+      return returnData;
     } else {
       throw Exception('Error al cargar las series');
     }
@@ -516,8 +526,16 @@ class _HomePageState extends State<HomePage> {
                           return FutureBuilder<
                               List<List<Map<String, dynamic>>>>(
                             future: Future.wait([
-                              searchMovies(tagList, apiKey), // Buscar pelis
-                              searchSeries(tagList, apiKey), // Buscar series
+                              searchMovies(
+                                  tagList,
+                                  apiKey,
+                                  FirebaseAuth.instance.currentUser!
+                                      .uid), // Buscar pelis
+                              searchSeries(
+                                  tagList,
+                                  apiKey,
+                                  FirebaseAuth.instance.currentUser!
+                                      .uid), // Buscar series
                             ]),
                             builder: (context, snapshot) {
                               if (snapshot.connectionState ==
@@ -567,15 +585,17 @@ class _HomePageState extends State<HomePage> {
                                             child: Column(
                                               children: [
                                                 Image.network(movie['imageUrl'],
-                                                    height: 150,
-                                                    width: 100,
+                                                    height: 165,
+                                                    width: 110,
                                                     fit: BoxFit.cover),
-                                                /* Text(movie['title'],
-                                                    style: TextStyle(
-                                                        fontWeight:
-                                                            FontWeight.bold)), */
-                                                Text(
-                                                    'Plataforma: ${movie['platforms'].join(', ')}'),
+                                                Padding(
+                                                    padding:
+                                                        const EdgeInsets.only(
+                                                            top: 8.0,
+                                                            left: 4.0,
+                                                            right: 4.0),
+                                                    child: Text(
+                                                        '${movie['platforms'].join(', ')}'))
                                               ],
                                             ),
                                           );
@@ -606,15 +626,20 @@ class _HomePageState extends State<HomePage> {
                                             child: Column(
                                               children: [
                                                 Image.network(serie['imageUrl'],
-                                                    height: 150,
-                                                    width: 100,
+                                                    height: 165,
+                                                    width: 110,
                                                     fit: BoxFit.cover),
-                                                /* Text(serie['title'],
-                                                    style: TextStyle(
-                                                        fontWeight:
-                                                            FontWeight.bold)), */
-                                                Text(
-                                                    'Plataforma: ${serie['platforms'].join(', ')}'),
+                                                Padding(
+                                                  padding: const EdgeInsets
+                                                      .only(
+                                                      top: 8.0,
+                                                      left: 4.0,
+                                                      right:
+                                                          4.0), // Afegir un padding superior
+                                                  child: Text(
+                                                    '${serie['platforms'].join(', ')}',
+                                                  ),
+                                                ),
                                               ],
                                             ),
                                           );

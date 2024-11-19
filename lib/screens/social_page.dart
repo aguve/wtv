@@ -1,6 +1,9 @@
+import 'dart:convert';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
 import 'package:wtv/screens/home_page.dart';
 import 'package:wtv/screens/profile_page.dart';
 import 'package:wtv/screens/reviews_page.dart';
@@ -20,6 +23,8 @@ class _SocialPageState extends State<SocialPage> {
       []; // Llista per guardar els contactes
   Set<int> _selectedFriends = {};
   List<Map<String, dynamic>> _groupsList = [];
+  final String apiKey = 'c399b9dc6a126d4c4de99e265544cabb';
+  int? _selectedGroupIndex;
 
   @override
   void initState() {
@@ -331,6 +336,46 @@ class _SocialPageState extends State<SocialPage> {
     }
   }
 
+// Funció per recuperar pel·lícules o sèries amb els tags i les plataformes
+  Future<List<dynamic>> _fetchMoviesOrShows(
+      String type, Map<String, dynamic> group, String apiKey) async {
+    List<String> groupTags = List<String>.from(group['tags']);
+    List<String> groupPlatforms = List<String>.from(group['channels']);
+
+    List<dynamic> results = [];
+
+    try {
+      // Codificar els valors correctament
+      String tags = groupTags.join(',');
+      String platforms = groupPlatforms.join(',');
+
+      final url = Uri.parse(
+        'https://api.themoviedb.org/3/discover/$type?api_key=$apiKey&language=es-ES&with_genres=$tags&with_watch_providers=$platforms&watch_region=ES',
+      );
+      /* final url = Uri.parse(
+          'https://api.themoviedb.org/3/trending/movie/week?api_key=$apiKey'); */
+
+      // Afegeix un temps d'espera (timeout) per evitar que la petició s'aturi prematurament
+      final response = await http.get(url).timeout(Duration(seconds: 20));
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        results = data['results'];
+      } else {
+        throw Exception(
+            'Error recuperant dades de TMDB: ${response.statusCode}');
+      }
+    } catch (e) {
+      print('Error al recuperar les pel·lícules o sèries: $e');
+      // Si hi ha un error, mostrem un missatge més clar
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error al carregar les dades: $e')),
+      );
+    }
+
+    return results;
+  }
+
   @override
   Widget build(BuildContext context) {
     double screenHeight = MediaQuery.of(context).size.height;
@@ -351,8 +396,6 @@ class _SocialPageState extends State<SocialPage> {
                   Navigator.pushReplacement(context,
                       MaterialPageRoute(builder: (context) => Splash()));
                   break;
-                case 'settings':
-                  break;
               }
             },
             itemBuilder: (BuildContext context) {
@@ -367,28 +410,18 @@ class _SocialPageState extends State<SocialPage> {
                     ],
                   ),
                 ),
-                PopupMenuItem<String>(
-                  value: 'settings',
-                  child: Row(
-                    children: [
-                      Text('Opcions'),
-                      SizedBox(width: 5),
-                      Icon(Icons.settings),
-                    ],
-                  ),
-                ),
               ];
             },
           ),
         ],
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          children: [
-            // Targeta de Contactes
-            Expanded(
-              child: Card(
+      body: SingleChildScrollView(
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            children: [
+              // Targeta de Contactes
+              Card(
                 elevation: 4,
                 child: Padding(
                   padding: const EdgeInsets.all(8.0),
@@ -442,12 +475,10 @@ class _SocialPageState extends State<SocialPage> {
                   ),
                 ),
               ),
-            ),
-            const SizedBox(height: 16), // Separador entre les targetes
+              const SizedBox(height: 16), // Separador entre les targetes
 
-            // Tarjeta de Grups
-            Expanded(
-              child: Card(
+              // Tarjeta de Grups
+              Card(
                 elevation: 4,
                 child: Padding(
                   padding: const EdgeInsets.all(8.0),
@@ -468,15 +499,18 @@ class _SocialPageState extends State<SocialPage> {
                             final group = _groupsList[
                                 index]; // Obtenir les dades del grup
                             return Card(
-                              child: ListTile(
-                                title: Text(
-                                    "${group['members'].join(', ')} i jo"), // Nom del grup, es pot personalitzar
-                                subtitle: Text(
-                                    "Tags: ${group['tags'].join(', ')}"), // Mostrar tags del grup
-                                onTap: () {
-                                  // Acció al tocar un grup per gestionar-lo
-                                  // Aquí pots afegir la lògica per mostrar més informació del grup
-                                },
+                              child: GestureDetector(
+                                child: ListTile(
+                                  title: Text(
+                                      "${group['members'].join(', ')} i jo"), // Nom del grup
+                                  subtitle: Text(
+                                      "Tags: ${group['tags'].join(', ')}"), // Mostrar tags del grup
+                                  onTap: () {
+                                    setState(() {
+                                      _selectedGroupIndex = index;
+                                    });
+                                  },
+                                ),
                               ),
                             );
                           },
@@ -486,26 +520,138 @@ class _SocialPageState extends State<SocialPage> {
                   ),
                 ),
               ),
-            ),
-            const SizedBox(height: 20),
+              const SizedBox(height: 12),
 
-            // Botons per afegir contacte o grup.
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: [
-                ElevatedButton.icon(
-                  onPressed: _openAddFriendDialog,
-                  icon: const Icon(Icons.person_add),
-                  label: const Text("Nou Amic"),
+              // Botons per afegir contacte o grup.
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  ElevatedButton.icon(
+                    onPressed: _openAddFriendDialog,
+                    icon: const Icon(Icons.person_add),
+                    label: const Text("Nou Amic"),
+                  ),
+                  ElevatedButton.icon(
+                    onPressed: _createGroup,
+                    icon: const Icon(Icons.group_add),
+                    label: const Text("Nou Grup"),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 20),
+              if (_selectedGroupIndex != null) ...[
+                Card(
+                  elevation: 4,
+                  child: Padding(
+                    padding: const EdgeInsets.all(8.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          "Per a tots!",
+                          style: TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                        const SizedBox(height: 8),
+                        SizedBox(
+                          height: screenHeight * 0.25,
+                          child: FutureBuilder(
+                            future: _fetchMoviesOrShows(
+                                'tv',
+                                _groupsList[_selectedGroupIndex!],
+                                apiKey), // Mostrar les sèries
+                            builder: (context, snapshot) {
+                              if (snapshot.connectionState ==
+                                  ConnectionState.waiting) {
+                                return Center(
+                                    child: CircularProgressIndicator());
+                              }
+
+                              if (snapshot.hasError) {
+                                return Text('Error carregant les sèries');
+                              }
+
+                              List<dynamic> seriesList =
+                                  snapshot.data as List<dynamic>;
+
+                              return ListView.builder(
+                                scrollDirection: Axis.horizontal,
+                                itemCount: seriesList.length,
+                                itemBuilder: (context, index) {
+                                  var series = seriesList[index];
+                                  return Card(
+                                    child: Column(
+                                      children: [
+                                        Image.network(
+                                          'https://image.tmdb.org/t/p/w500${series['poster_path']}',
+                                          height: 100,
+                                          width: 70,
+                                          fit: BoxFit.cover,
+                                        ),
+                                        Text(series['name'],
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis),
+                                      ],
+                                    ),
+                                  );
+                                },
+                              );
+                            },
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
-                ElevatedButton.icon(
-                  onPressed: _createGroup,
-                  icon: const Icon(Icons.group_add),
-                  label: const Text("Nou Grup"),
+                SizedBox(height: 20),
+                // Mostrem les pel·lícules
+                Text("Pel·lícules",
+                    style: TextStyle(fontWeight: FontWeight.bold)),
+                SizedBox(
+                  height: 150,
+                  child: FutureBuilder(
+                    future: _fetchMoviesOrShows(
+                        'movie',
+                        _groupsList[_selectedGroupIndex!],
+                        apiKey), // Mostrar les pel·lícules
+                    builder: (context, snapshot) {
+                      if (snapshot.connectionState == ConnectionState.waiting) {
+                        return Center(child: CircularProgressIndicator());
+                      }
+
+                      if (snapshot.hasError) {
+                        return Text('Error carregant les pel·lícules');
+                      }
+
+                      List<dynamic> moviesList = snapshot.data as List<dynamic>;
+
+                      return ListView.builder(
+                        scrollDirection: Axis.horizontal,
+                        itemCount: moviesList.length,
+                        itemBuilder: (context, index) {
+                          var movie = moviesList[index];
+                          return Card(
+                            child: Column(
+                              children: [
+                                Image.network(
+                                  'https://image.tmdb.org/t/p/w500${movie['poster_path']}',
+                                  height: 100,
+                                  width: 70,
+                                  fit: BoxFit.cover,
+                                ),
+                                Text(movie['title'],
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis),
+                              ],
+                            ),
+                          );
+                        },
+                      );
+                    },
+                  ),
                 ),
               ],
-            ),
-          ],
+            ],
+          ),
         ),
       ),
       bottomNavigationBar: BottomNavigationBar(
