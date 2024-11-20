@@ -8,6 +8,7 @@ import 'package:wtv/screens/home_page.dart';
 import 'package:wtv/screens/profile_page.dart';
 import 'package:wtv/screens/reviews_page.dart';
 import 'package:wtv/screens/splash.dart';
+import 'package:wtv/styles/app_sytles.dart';
 
 class SocialPage extends StatefulWidget {
   @override
@@ -127,7 +128,10 @@ class _SocialPageState extends State<SocialPage> {
     }
 
     // Actualitzar l'estat per mostrar el grup a la targeta
-    setState(() {});
+    setState(() {
+      _fetchGroups();
+      _selectedFriends.map((index) => _selectedFriends.remove(index));
+    });
   }
 
   Future<Map<String, dynamic>> checkIfEmailExists(String email) async {
@@ -202,6 +206,9 @@ class _SocialPageState extends State<SocialPage> {
                     Navigator.pop(context);
                   }
                 }
+                setState(() {
+                  _fetchFriends();
+                });
               },
               child: Text("Desar"),
             ),
@@ -236,7 +243,7 @@ class _SocialPageState extends State<SocialPage> {
       String email = _emailController.text;
       String name = _nameController.text;
 
-      // Afegir el contacte a la col·lecció 'friends' dins el document de l'usuari
+      // Afegix el contacte a la col·lecció 'friends' dins el document de l'usuari
       await _firestore
           .collection('users')
           .doc(userId)
@@ -245,7 +252,7 @@ class _SocialPageState extends State<SocialPage> {
         'uid': friendID,
         'email': email,
         'name': name,
-        'tags': friendGenres, // Aquí es poden afegir els tags seleccionats
+        'tags': friendGenres,
         'channels': selectedPlatformNames,
         'createdAt': Timestamp.now(),
       });
@@ -382,10 +389,19 @@ class _SocialPageState extends State<SocialPage> {
     return Scaffold(
       appBar: AppBar(
         automaticallyImplyLeading: false,
-        title: const Text('Social'),
+        title: Text(
+          'Social',
+          style: TextStyle(
+            color: AppSytles.platinium,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
         actions: <Widget>[
           PopupMenuButton<String>(
-            icon: Icon(Icons.more_vert),
+            icon: Icon(
+              Icons.more_vert,
+              color: AppSytles.platinium,
+            ),
             onSelected: (String result) async {
               /* ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(content: Text('Opció seleccionada: $result'))); */
@@ -422,15 +438,18 @@ class _SocialPageState extends State<SocialPage> {
             children: [
               // Targeta de Contactes
               Card(
+                color: AppSytles.columbiaBlue,
                 elevation: 4,
                 child: Padding(
                   padding: const EdgeInsets.all(8.0),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
+                      Text(
                         "Contactes",
-                        style: TextStyle(fontWeight: FontWeight.bold),
+                        style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: AppSytles.oxfordBlue),
                       ),
                       const SizedBox(height: 8),
                       SizedBox(
@@ -479,15 +498,19 @@ class _SocialPageState extends State<SocialPage> {
 
               // Tarjeta de Grups
               Card(
+                color: AppSytles.columbiaBlue,
                 elevation: 4,
                 child: Padding(
                   padding: const EdgeInsets.all(8.0),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
+                      Text(
                         "Grups",
-                        style: TextStyle(fontWeight: FontWeight.bold),
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: AppSytles.oxfordBlue,
+                        ),
                       ),
                       const SizedBox(height: 8),
                       SizedBox(
@@ -499,6 +522,7 @@ class _SocialPageState extends State<SocialPage> {
                             final group = _groupsList[
                                 index]; // Obtenir les dades del grup
                             return Card(
+                              color: AppSytles.columbiaBlue,
                               child: GestureDetector(
                                 child: ListTile(
                                   title: Text(
@@ -527,11 +551,19 @@ class _SocialPageState extends State<SocialPage> {
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: [
                   ElevatedButton.icon(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppSytles.sapphire,
+                      foregroundColor: AppSytles.columbiaBlue,
+                    ),
                     onPressed: _openAddFriendDialog,
                     icon: const Icon(Icons.person_add),
                     label: const Text("Nou Amic"),
                   ),
                   ElevatedButton.icon(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppSytles.sapphire,
+                      foregroundColor: AppSytles.columbiaBlue,
+                    ),
                     onPressed: _createGroup,
                     icon: const Icon(Icons.group_add),
                     label: const Text("Nou Grup"),
@@ -541,15 +573,26 @@ class _SocialPageState extends State<SocialPage> {
               const SizedBox(height: 20),
               if (_selectedGroupIndex != null) ...[
                 Card(
+                  color: AppSytles.columbiaBlue,
                   elevation: 4,
                   child: Padding(
                     padding: const EdgeInsets.all(8.0),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text(
-                          "Per a tots!",
-                          style: TextStyle(fontWeight: FontWeight.bold),
+                        Text(
+                          "Per al grup!",
+                          style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                              color: AppSytles.oxfordBlue),
+                        ),
+                        Text(
+                          "Pelis:",
+                          style: TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.bold,
+                              color: AppSytles.oxfordBlue),
                         ),
                         const SizedBox(height: 8),
                         SizedBox(
@@ -598,55 +641,61 @@ class _SocialPageState extends State<SocialPage> {
                             },
                           ),
                         ),
+                        SizedBox(height: 20),
+                        // Mostrem les pel·lícules
+                        Text("Series",
+                            style: TextStyle(
+                                fontSize: 15,
+                                fontWeight: FontWeight.bold,
+                                color: AppSytles.oxfordBlue)),
+                        SizedBox(
+                          height: screenHeight * 0.25,
+                          child: FutureBuilder(
+                            future: _fetchMoviesOrShows(
+                                'movie',
+                                _groupsList[_selectedGroupIndex!],
+                                apiKey), // Mostrar les pel·lícules
+                            builder: (context, snapshot) {
+                              if (snapshot.connectionState ==
+                                  ConnectionState.waiting) {
+                                return Center(
+                                    child: CircularProgressIndicator());
+                              }
+
+                              if (snapshot.hasError) {
+                                return Text('Error carregant les pel·lícules');
+                              }
+
+                              List<dynamic> moviesList =
+                                  snapshot.data as List<dynamic>;
+
+                              return ListView.builder(
+                                scrollDirection: Axis.horizontal,
+                                itemCount: moviesList.length,
+                                itemBuilder: (context, index) {
+                                  var movie = moviesList[index];
+                                  return Card(
+                                    child: Column(
+                                      children: [
+                                        Image.network(
+                                          'https://image.tmdb.org/t/p/w500${movie['poster_path']}',
+                                          height: 100,
+                                          width: 70,
+                                          fit: BoxFit.cover,
+                                        ),
+                                        Text(movie['title'],
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis),
+                                      ],
+                                    ),
+                                  );
+                                },
+                              );
+                            },
+                          ),
+                        ),
                       ],
                     ),
-                  ),
-                ),
-                SizedBox(height: 20),
-                // Mostrem les pel·lícules
-                Text("Pel·lícules",
-                    style: TextStyle(fontWeight: FontWeight.bold)),
-                SizedBox(
-                  height: 150,
-                  child: FutureBuilder(
-                    future: _fetchMoviesOrShows(
-                        'movie',
-                        _groupsList[_selectedGroupIndex!],
-                        apiKey), // Mostrar les pel·lícules
-                    builder: (context, snapshot) {
-                      if (snapshot.connectionState == ConnectionState.waiting) {
-                        return Center(child: CircularProgressIndicator());
-                      }
-
-                      if (snapshot.hasError) {
-                        return Text('Error carregant les pel·lícules');
-                      }
-
-                      List<dynamic> moviesList = snapshot.data as List<dynamic>;
-
-                      return ListView.builder(
-                        scrollDirection: Axis.horizontal,
-                        itemCount: moviesList.length,
-                        itemBuilder: (context, index) {
-                          var movie = moviesList[index];
-                          return Card(
-                            child: Column(
-                              children: [
-                                Image.network(
-                                  'https://image.tmdb.org/t/p/w500${movie['poster_path']}',
-                                  height: 100,
-                                  width: 70,
-                                  fit: BoxFit.cover,
-                                ),
-                                Text(movie['title'],
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis),
-                              ],
-                            ),
-                          );
-                        },
-                      );
-                    },
                   ),
                 ),
               ],
@@ -655,8 +704,10 @@ class _SocialPageState extends State<SocialPage> {
         ),
       ),
       bottomNavigationBar: BottomNavigationBar(
-        selectedItemColor: const Color.fromARGB(255, 79, 57, 204),
-        unselectedItemColor: Colors.grey,
+        type: BottomNavigationBarType.fixed,
+        backgroundColor: AppSytles.prussianBlue,
+        selectedItemColor: AppSytles.platinium,
+        unselectedItemColor: AppSytles.sapphire,
         currentIndex: 2,
         onTap: (index) {
           if (index == 0) {
@@ -683,19 +734,31 @@ class _SocialPageState extends State<SocialPage> {
         },
         items: const [
           BottomNavigationBarItem(
-            icon: Icon(Icons.home),
+            icon: Padding(
+              padding: const EdgeInsets.only(top: 8.0), // Afegeix separació
+              child: Icon(Icons.home),
+            ),
             label: '',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.manage_accounts),
+            icon: Padding(
+              padding: const EdgeInsets.only(top: 8.0), // Afegeix separació
+              child: Icon(Icons.manage_accounts),
+            ),
             label: '',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.groups),
+            icon: Padding(
+              padding: const EdgeInsets.only(top: 8.0), // Afegeix separació
+              child: Icon(Icons.groups),
+            ),
             label: '',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.reviews_outlined),
+            icon: Padding(
+              padding: const EdgeInsets.only(top: 8.0), // Afegeix separació
+              child: Icon(Icons.reviews_outlined),
+            ),
             label: '',
           ),
         ],

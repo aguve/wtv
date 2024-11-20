@@ -11,6 +11,7 @@ import 'package:wtv/screens/profile_page.dart';
 import 'package:wtv/screens/reviews_page.dart';
 import 'package:wtv/screens/social_page.dart';
 import 'package:wtv/screens/splash.dart';
+import 'package:wtv/styles/app_sytles.dart';
 
 class HomePage extends StatefulWidget {
   @override
@@ -56,7 +57,7 @@ class _HomePageState extends State<HomePage> {
         final seriesData = json.decode(seriesResponse.body)['results'] as List;
 
         // Filtrar las pelis que coincideixen amb les plataformes seleccionades
-        var first5movies = moviesData.take(20);
+        var first5movies = moviesData.take(10);
         List<Map<String, dynamic>> movies = [];
         for (var item in first5movies) {
           final platforms = await fetchPlatforms(item['id'], 'movie');
@@ -74,7 +75,7 @@ class _HomePageState extends State<HomePage> {
         }
 
         // Filtrar las series que coincideixen amb les plataformes seleccionades
-        var first5series = seriesData.take(20);
+        var first5series = seriesData.take(10);
         List<Map<String, dynamic>> series = [];
         for (var item in first5series) {
           final platforms = await fetchPlatforms(item['id'], 'tv');
@@ -103,6 +104,18 @@ class _HomePageState extends State<HomePage> {
   Future<List<Map<String, dynamic>>> searchMovies(
       List<String> tags, String apiKey, String uid) async {
     Map<String, int> genresMap = await getGenresMap(apiKey);
+    // Recuperar les plataformes seleccionades per l'usuari
+    List<Map<String, dynamic>> selectedPlatforms =
+        await getSelectedPlatforms(uid);
+    List<int> selectedPlatformIds = [];
+    for (var platform in selectedPlatforms) {
+      selectedPlatformIds.add(platform['id']);
+    }
+    //selectedPlatforms.map((platform) => platform['id']).toList();
+
+    // Crear una cadena amb els ID de les plataformes seleccionades
+    //String platformsQuery = selectedPlatformIds.join(',');
+
     String url =
         'https://api.themoviedb.org/3/discover/movie?api_key=$apiKey&language=es-ES&with_genres=';
 
@@ -113,8 +126,11 @@ class _HomePageState extends State<HomePage> {
         .toList(); // Convierte a lista
 
     String genreIdsString = genreIds.join(',');
-
     url += genreIdsString;
+    // Afegir el paràmetre de proveïdors de streaming a la consulta
+    /* if (platformsQuery.isNotEmpty) {
+      url += '&with_watch_providers=$platformsQuery&watch_region=ES';
+    } */
 
     final response = await http.get(Uri.parse(url));
 
@@ -154,9 +170,7 @@ class _HomePageState extends State<HomePage> {
         .toList(); // Convierte a lista
 
     String genreIdsString = genreIds.join(',');
-
     url += genreIdsString;
-
     final response = await http.get(Uri.parse(url));
 
     if (response.statusCode == 200) {
@@ -365,10 +379,19 @@ class _HomePageState extends State<HomePage> {
     return Scaffold(
       appBar: AppBar(
         automaticallyImplyLeading: false,
-        title: const Text('WTV'),
+        title: Text(
+          'WTV',
+          style: TextStyle(
+            color: AppSytles.platinium,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
         actions: <Widget>[
           PopupMenuButton<String>(
-            icon: Icon(Icons.more_vert),
+            icon: Icon(
+              Icons.more_vert,
+              color: AppSytles.platinium,
+            ),
             onSelected: (String result) async {
               switch (result) {
                 case 'logout':
@@ -390,16 +413,6 @@ class _HomePageState extends State<HomePage> {
                       Text('Sortir'),
                       SizedBox(width: 25),
                       Icon(Icons.logout),
-                    ],
-                  ),
-                ),
-                PopupMenuItem<String>(
-                  value: 'settings',
-                  child: Row(
-                    children: [
-                      Text('Opcions'),
-                      SizedBox(width: 5),
-                      Icon(Icons.settings),
                     ],
                   ),
                 ),
@@ -442,10 +455,8 @@ class _HomePageState extends State<HomePage> {
                           return Container(
                             margin: const EdgeInsets.symmetric(horizontal: 8.0),
                             decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(10),
-                              color: Colors
-                                  .white, // Fondo blanco para resaltar el contenido
-                            ),
+                                borderRadius: BorderRadius.circular(10),
+                                color: AppSytles.oxfordBlue),
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.stretch,
                               children: [
@@ -470,8 +481,8 @@ class _HomePageState extends State<HomePage> {
                                   padding: const EdgeInsets.all(8.0),
                                   child: Text(
                                     item['title'],
-                                    style: const TextStyle(
-                                      color: Colors.black,
+                                    style: TextStyle(
+                                      color: AppSytles.platinium,
                                       fontWeight: FontWeight.bold,
                                       fontSize: 16,
                                     ),
@@ -485,9 +496,9 @@ class _HomePageState extends State<HomePage> {
                                     padding: const EdgeInsets.symmetric(
                                         horizontal: 8.0),
                                     child: Text(
-                                      'Plataforma: ${item['platforms'].join(", ")}',
-                                      style: const TextStyle(
-                                        color: Colors.black,
+                                      '${item['platforms'].join(", ")}',
+                                      style: TextStyle(
+                                        color: AppSytles.columbiaBlue,
                                         fontSize: 12,
                                       ),
                                       textAlign: TextAlign.center,
@@ -565,10 +576,10 @@ class _HomePageState extends State<HomePage> {
                                       padding: const EdgeInsets.all(8.0),
                                       child: Text(
                                         'Pelis',
-                                        style: const TextStyle(
+                                        style: TextStyle(
                                             fontSize: 16,
                                             fontWeight: FontWeight.bold,
-                                            color: Colors.black54),
+                                            color: AppSytles.platinium),
                                       ),
                                     ),
                                     // ListView de pelis
@@ -580,6 +591,7 @@ class _HomePageState extends State<HomePage> {
                                         itemBuilder: (context, movieIndex) {
                                           final movie = movies[movieIndex];
                                           return Card(
+                                            color: AppSytles.oxfordBlue,
                                             margin: const EdgeInsets.symmetric(
                                                 horizontal: 8.0),
                                             child: Column(
@@ -607,10 +619,10 @@ class _HomePageState extends State<HomePage> {
                                       padding: const EdgeInsets.all(8.0),
                                       child: Text(
                                         'Series',
-                                        style: const TextStyle(
+                                        style: TextStyle(
                                             fontSize: 16,
                                             fontWeight: FontWeight.bold,
-                                            color: Colors.black54),
+                                            color: AppSytles.platinium),
                                       ),
                                     ),
                                     SizedBox(
@@ -621,6 +633,7 @@ class _HomePageState extends State<HomePage> {
                                         itemBuilder: (context, seriesIndex) {
                                           final serie = series[seriesIndex];
                                           return Card(
+                                            color: AppSytles.oxfordBlue,
                                             margin: const EdgeInsets.symmetric(
                                                 horizontal: 8.0),
                                             child: Column(
@@ -669,8 +682,10 @@ class _HomePageState extends State<HomePage> {
         ),
       ),
       bottomNavigationBar: BottomNavigationBar(
-        selectedItemColor: const Color.fromARGB(255, 79, 57, 204),
-        unselectedItemColor: Colors.grey,
+        type: BottomNavigationBarType.fixed,
+        backgroundColor: AppSytles.prussianBlue,
+        selectedItemColor: AppSytles.platinium,
+        unselectedItemColor: AppSytles.sapphire,
         onTap: (index) {
           if (index == 0) {
             Navigator.push(
@@ -696,19 +711,31 @@ class _HomePageState extends State<HomePage> {
         },
         items: const [
           BottomNavigationBarItem(
-            icon: Icon(Icons.home),
+            icon: Padding(
+              padding: const EdgeInsets.only(top: 8.0), // Afegeix separació
+              child: Icon(Icons.home),
+            ),
             label: '',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.manage_accounts),
+            icon: Padding(
+              padding: const EdgeInsets.only(top: 8.0), // Afegeix separació
+              child: Icon(Icons.manage_accounts),
+            ),
             label: '',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.groups),
+            icon: Padding(
+              padding: const EdgeInsets.only(top: 8.0), // Afegeix separació
+              child: Icon(Icons.groups),
+            ),
             label: '',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.reviews_outlined),
+            icon: Padding(
+              padding: const EdgeInsets.only(top: 8.0), // Afegeix separació
+              child: Icon(Icons.reviews_outlined),
+            ),
             label: '',
           ),
         ],

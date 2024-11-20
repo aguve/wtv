@@ -8,6 +8,7 @@ import 'package:wtv/screens/home_page.dart';
 import 'package:wtv/screens/profile_page.dart';
 import 'package:wtv/screens/social_page.dart';
 import 'package:wtv/screens/splash.dart';
+import 'package:wtv/styles/app_sytles.dart';
 
 class ReviewsPage extends StatefulWidget {
   @override
@@ -72,10 +73,19 @@ class _ReviewsPageState extends State<ReviewsPage> {
     return Scaffold(
       appBar: AppBar(
         automaticallyImplyLeading: false,
-        title: const Text('Reviews'),
+        title: Text(
+          'Reviews',
+          style: TextStyle(
+            color: AppSytles.platinium,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
         actions: <Widget>[
           PopupMenuButton<String>(
-            icon: Icon(Icons.more_vert),
+            icon: Icon(
+              Icons.more_vert,
+              color: AppSytles.platinium,
+            ),
             onSelected: (String result) async {
               switch (result) {
                 case 'logout':
@@ -115,70 +125,74 @@ class _ReviewsPageState extends State<ReviewsPage> {
           ),
         ],
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          children: [
-            TextField(
-              controller: _searchController,
-              decoration: InputDecoration(
-                labelText: 'Cerca pel·lícula o sèrie',
-                suffixIcon: IconButton(
-                  icon: Icon(Icons.search),
-                  onPressed: _searchMovie,
+      body: SingleChildScrollView(
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            children: [
+              TextField(
+                controller: _searchController,
+                decoration: InputDecoration(
+                  labelText: 'Cerca pel·lícula o sèrie',
+                  suffixIcon: IconButton(
+                    icon: Icon(Icons.search),
+                    onPressed: _searchMovie,
+                  ),
                 ),
               ),
-            ),
-            SizedBox(height: 20),
-            _movieData != null
-                ? Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // La imatge ocupa la meitat superior de la pantalla
-                      Container(
-                        height: MediaQuery.of(context).size.height *
-                            0.4, // Mitja pantalla per la imatge
-                        //width: double.infinity,
+              SizedBox(height: 20),
+              _movieData != null
+                  ? Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // La imatge ocupa la meitat superior de la pantalla
+                        Container(
+                          height: MediaQuery.of(context).size.height *
+                              0.4, // Mitja pantalla per la imatge
+                          //width: double.infinity,
 
-                        child: Image.network(
-                          'https://image.tmdb.org/t/p/w500${_movieData!['poster_path']}',
-                          fit: BoxFit.cover,
+                          child: Image.network(
+                            'https://image.tmdb.org/t/p/w500${_movieData!['poster_path']}',
+                            fit: BoxFit.cover,
+                          ),
                         ),
-                      ),
-                      SizedBox(height: 10),
-                      // Informació del film a la part inferior
-                      Text(
-                          '${_movieData!['title']} (${_movieData!['release_date']?.substring(0, 4)})',
-                          style: TextStyle(
-                              fontSize: 18, fontWeight: FontWeight.bold)),
-                      Text('Durada: ${_movieData!['runtime']} min',
-                          style: TextStyle(fontSize: 16)),
-                      Text('Valoració: ${_movieData!['vote_average']}',
-                          style: TextStyle(fontSize: 16)),
-                      SizedBox(height: 20),
-                      // Camp per escriure la ressenya
-                      TextField(
-                        controller: _reviewController,
-                        decoration: InputDecoration(
-                          labelText: 'Escriu una ressenya',
-                          border: OutlineInputBorder(),
+                        SizedBox(height: 10),
+                        // Informació del film a la part inferior
+                        Text(
+                            '${_movieData!['title']} (${_movieData!['release_date']?.substring(0, 4)})',
+                            style: TextStyle(
+                                fontSize: 18, fontWeight: FontWeight.bold)),
+                        Text('Estrena: ${_movieData!['release_date']}',
+                            style: TextStyle(fontSize: 16)),
+                        Text('Valoració: ${_movieData!['vote_average']}',
+                            style: TextStyle(fontSize: 16)),
+                        SizedBox(height: 20),
+                        // Camp per escriure la ressenya
+                        TextField(
+                          controller: _reviewController,
+                          decoration: InputDecoration(
+                            labelText: 'Escriu una ressenya',
+                            border: OutlineInputBorder(),
+                          ),
+                          maxLines: 4,
                         ),
-                        maxLines: 4,
-                      ),
-                      SizedBox(height: 10),
-                      ElevatedButton(
-                        onPressed: _saveReview,
-                        child: Text('Guardar Ressenya'),
-                      ),
-                    ],
-                  )
-                : Text('No es troben resultats per aquesta cerca.'),
-          ],
+                        SizedBox(height: 10),
+                        ElevatedButton(
+                          onPressed: _saveReview,
+                          child: Text('Guardar Ressenya'),
+                        ),
+                      ],
+                    )
+                  : Text('No es troben resultats per aquesta cerca.'),
+            ],
+          ),
         ),
       ),
       bottomNavigationBar: BottomNavigationBar(
-        selectedItemColor: const Color.fromARGB(255, 79, 57, 204),
-        unselectedItemColor: Colors.grey,
+        type: BottomNavigationBarType.fixed,
+        backgroundColor: AppSytles.prussianBlue,
+        selectedItemColor: AppSytles.platinium,
+        unselectedItemColor: AppSytles.sapphire,
         currentIndex: 3,
         onTap: (index) {
           if (index == 0) {
@@ -205,19 +219,31 @@ class _ReviewsPageState extends State<ReviewsPage> {
         },
         items: const [
           BottomNavigationBarItem(
-            icon: Icon(Icons.home),
+            icon: Padding(
+              padding: const EdgeInsets.only(top: 8.0), // Afegeix separació
+              child: Icon(Icons.home),
+            ),
             label: '',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.manage_accounts),
+            icon: Padding(
+              padding: const EdgeInsets.only(top: 8.0), // Afegeix separació
+              child: Icon(Icons.manage_accounts),
+            ),
             label: '',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.groups),
+            icon: Padding(
+              padding: const EdgeInsets.only(top: 8.0), // Afegeix separació
+              child: Icon(Icons.groups),
+            ),
             label: '',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.reviews_outlined),
+            icon: Padding(
+              padding: const EdgeInsets.only(top: 8.0), // Afegeix separació
+              child: Icon(Icons.reviews_outlined),
+            ),
             label: '',
           ),
         ],

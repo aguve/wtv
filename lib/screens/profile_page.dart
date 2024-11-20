@@ -12,6 +12,7 @@ import 'package:wtv/screens/home_page.dart';
 import 'package:wtv/screens/reviews_page.dart';
 import 'package:wtv/screens/social_page.dart';
 import 'package:wtv/screens/splash.dart';
+import 'package:wtv/styles/app_sytles.dart';
 
 class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
@@ -22,7 +23,6 @@ class ProfilePage extends StatefulWidget {
 
 class _ProfilePageState extends State<ProfilePage> {
   final TextEditingController _nameController = TextEditingController();
-  //final TextEditingController _mailController = TextEditingController();
   final Set<int> _selectedProviders = {};
   final Set<String> _selectedGenres = <String>{};
   final nameProviders = [];
@@ -75,10 +75,19 @@ class _ProfilePageState extends State<ProfilePage> {
     return Scaffold(
       appBar: AppBar(
         automaticallyImplyLeading: false,
-        title: Text('Hola $uName'),
+        title: Text(
+          'Hola $uName',
+          style: TextStyle(
+            color: AppSytles.platinium,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
         actions: <Widget>[
           PopupMenuButton<String>(
-            icon: Icon(Icons.more_vert),
+            icon: Icon(
+              Icons.more_vert,
+              color: AppSytles.platinium,
+            ),
             onSelected: (String result) async {
               /* ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(content: Text('Opció seleccionada: $result'))); */
@@ -105,16 +114,6 @@ class _ProfilePageState extends State<ProfilePage> {
                     ],
                   ),
                 ),
-                PopupMenuItem<String>(
-                  value: 'settings',
-                  child: Row(
-                    children: [
-                      Text('Opcions'),
-                      SizedBox(width: 5),
-                      Icon(Icons.settings),
-                    ],
-                  ),
-                ),
               ];
             },
           ),
@@ -138,10 +137,6 @@ class _ProfilePageState extends State<ProfilePage> {
                                 FirebaseAuth.instance.currentUser!.photoURL!)
                             : const AssetImage('assets/default_avatar.jpg')
                                 as ImageProvider,
-                    /* child: const Icon(
-                      Icons.camera_alt,
-                      size: 30,
-                    ), */
                   ),
                 ),
               ),
@@ -150,6 +145,7 @@ class _ProfilePageState extends State<ProfilePage> {
 
               // nom del perfil
               TextField(
+                cursorColor: AppSytles.platinium,
                 controller: _nameController,
                 decoration: InputDecoration(
                   hintText: FirebaseAuth.instance.currentUser?.displayName ??
@@ -174,6 +170,7 @@ class _ProfilePageState extends State<ProfilePage> {
                   // Primera targeta
                   Expanded(
                     child: Card(
+                      color: AppSytles.oxfordBlue,
                       elevation: 4,
                       child: Padding(
                         padding: const EdgeInsets.all(8.0),
@@ -255,6 +252,10 @@ class _ProfilePageState extends State<ProfilePage> {
                             ),
                             SizedBox(height: 16),
                             ElevatedButton(
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: AppSytles.prussianBlue,
+                                foregroundColor: AppSytles.columbiaBlue,
+                              ),
                               onPressed: () async {
                                 final user = FirebaseAuth.instance.currentUser;
                                 if (user == null) return;
@@ -299,6 +300,7 @@ class _ProfilePageState extends State<ProfilePage> {
                   // Segona targeta
                   Expanded(
                     child: Card(
+                      color: AppSytles.oxfordBlue,
                       elevation: 4,
                       child: Padding(
                         padding: const EdgeInsets.all(8.0),
@@ -376,6 +378,10 @@ class _ProfilePageState extends State<ProfilePage> {
 
                             // Botó per confirmar grups de tags
                             ElevatedButton(
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: AppSytles.prussianBlue,
+                                foregroundColor: AppSytles.columbiaBlue,
+                              ),
                               onPressed: () async {
                                 final user = FirebaseAuth.instance.currentUser;
                                 if (user == null) return;
@@ -417,8 +423,10 @@ class _ProfilePageState extends State<ProfilePage> {
         ),
       ),
       bottomNavigationBar: BottomNavigationBar(
-        selectedItemColor: const Color.fromARGB(255, 79, 57, 204),
-        unselectedItemColor: Colors.grey,
+        type: BottomNavigationBarType.fixed,
+        backgroundColor: AppSytles.prussianBlue,
+        selectedItemColor: AppSytles.platinium,
+        unselectedItemColor: AppSytles.sapphire,
         currentIndex: 1,
         onTap: (index) {
           if (index == 0) {
@@ -445,19 +453,31 @@ class _ProfilePageState extends State<ProfilePage> {
         },
         items: const [
           BottomNavigationBarItem(
-            icon: Icon(Icons.home),
+            icon: Padding(
+              padding: const EdgeInsets.only(top: 8.0), // Afegeix separació
+              child: Icon(Icons.home),
+            ),
             label: '',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.manage_accounts),
+            icon: Padding(
+              padding: const EdgeInsets.only(top: 8.0), // Afegeix separació
+              child: Icon(Icons.manage_accounts),
+            ),
             label: '',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.groups),
+            icon: Padding(
+              padding: const EdgeInsets.only(top: 8.0), // Afegeix separació
+              child: Icon(Icons.groups),
+            ),
             label: '',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.reviews_outlined),
+            icon: Padding(
+              padding: const EdgeInsets.only(top: 8.0), // Afegeix separació
+              child: Icon(Icons.reviews_outlined),
+            ),
             label: '',
           ),
         ],
