@@ -1,4 +1,4 @@
-package com.example.wtv
+package com.asdevs.wtv
 
 import io.flutter.embedding.android.FlutterActivity
 

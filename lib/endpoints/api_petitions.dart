@@ -3,20 +3,16 @@ import 'dart:convert';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:wtv/config.dart';
 import 'package:wtv/models/movie_list.dart' as moviesResult;
 import 'package:wtv/models/series_list.dart' as seriesResult;
 import 'package:wtv/models/streaming_provider.dart';
 
 class ApiPetitions {
-  static const String apiKey =
-      'c399b9dc6a126d4c4de99e265544cabb'; // La teva clau d'API
-
   static Future<List<StreamingProvider>> fetchProviders() async {
     final String apiUrl = 'https://api.themoviedb.org/3/watch/providers/tv';
-    final response = await http.get(
-        Uri.parse('$apiUrl?api_key=$apiKey&language=es-ES&watch_region=ES'));
-    //https://api.themoviedb.org/3/watch/providers/movie?api_key=c399b9dc6a126d4c4de99e265544cabb&language=es-ES&watch_region=ES
-    //https://api.themoviedb.org/3/watch/providers/tv?api_key=c399b9dc6a126d4c4de99e265544cabb&language=es-ES
+    final response = await http.get(Uri.parse(
+        '$apiUrl?api_key=${Config.apiKey}&language=es-ES&watch_region=ES'));
 
     if (response.statusCode == 200) {
       final Map<String, dynamic> data = json.decode(response.body);
@@ -30,10 +26,9 @@ class ApiPetitions {
   }
 
   static Future<List<String>> fetchGenres() async {
-    final String apiKey = 'c399b9dc6a126d4c4de99e265544cabb';
     final String apiUrl = 'https://api.themoviedb.org/3/genre/movie/list';
-    final response =
-        await http.get(Uri.parse('$apiUrl?api_key=$apiKey&language=es-ES'));
+    final response = await http
+        .get(Uri.parse('$apiUrl?api_key=${Config.apiKey}&language=es-ES'));
 
     if (response.statusCode == 200) {
       final Map<String, dynamic> data = json.decode(response.body);
@@ -114,7 +109,7 @@ class ApiPetitions {
 
   static Future<List<String>> fetchPlatforms(int id, String type) async {
     final String url =
-        'https://api.themoviedb.org/3/$type/$id/watch/providers?api_key=$apiKey';
+        'https://api.themoviedb.org/3/$type/$id/watch/providers?api_key=${Config.apiKey}';
 
     final response = await http.get(Uri.parse(url));
     if (response.statusCode == 200) {
@@ -220,7 +215,8 @@ class ApiPetitions {
     }
   }
 
-  static Future<List<List<String>>> getGenresLists(String uid) async {
+  static Future<List<List<String>>> getGenresLists(String uid,
+      {List<String>? friendTags}) async {
     List<List<String>> genresLists = [];
 
     try {
@@ -233,6 +229,10 @@ class ApiPetitions {
       for (var doc in querySnapshot.docs) {
         List<String> genres = List<String>.from(doc['genres']);
         genresLists.add(genres);
+      }
+
+      if (friendTags != null && friendTags.isNotEmpty) {
+        genresLists.add(friendTags);
       }
 
       return genresLists;

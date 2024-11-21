@@ -28,12 +28,20 @@ dependencies:
   firebase_storage: ^12.3.4
 
 dev_dependencies:
+  flutter_launcher_icons: ^0.14.1
   flutter_test:
     sdk: flutter
+  package_rename: ^1.7.1
 
 flutter:
   uses-material-design: true
   assets:
     - assets/
+
+package_rename_config:
+  android:
+    app_name: WTV
+    package_name: com.asdevs.wtv
+    override_old_package: com.example.wtv
 
 

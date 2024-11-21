@@ -5,6 +5,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:wtv/config.dart';
 import 'package:wtv/endpoints/api_petitions.dart';
 import 'package:wtv/screens/profile_page.dart';
 import 'package:wtv/screens/reviews_page.dart';
@@ -21,7 +22,6 @@ class _HomePageState extends State<HomePage> {
   late Future<List<Map<String, dynamic>>> _filmsAndTv4u;
   late Future<List<List<String>>> genresFromFirestore;
   late Future<List<List<Map<String, dynamic>>>> moviesAndSeries;
-  final String apiKey = 'c399b9dc6a126d4c4de99e265544cabb';
   late final List<List<String>> selectedTags;
 
   @override
@@ -35,9 +35,9 @@ class _HomePageState extends State<HomePage> {
 
   Future<List<Map<String, dynamic>>> fetchMoviesAndSeries(String uid) async {
     final String moviesUrl =
-        'https://api.themoviedb.org/3/trending/movie/week?api_key=$apiKey';
+        'https://api.themoviedb.org/3/trending/movie/week?api_key=${Config.apiKey}';
     final String seriesUrl =
-        'https://api.themoviedb.org/3/trending/tv/week?api_key=$apiKey';
+        'https://api.themoviedb.org/3/trending/tv/week?api_key=${Config.apiKey}';
 
     // plataformes de l'usuari
     List<Map<String, dynamic>> selectedPlatforms =
@@ -102,9 +102,8 @@ class _HomePageState extends State<HomePage> {
   }
 
   Future<List<String>> fetchGenres() async {
-    const String apiKey = 'c399b9dc6a126d4c4de99e265544cabb';
     const String url =
-        'https://api.themoviedb.org/3/genre/movie/list?api_key=$apiKey&language=es-ES';
+        'https://api.themoviedb.org/3/genre/movie/list?api_key=${Config.apiKey}&language=es-ES';
 
     try {
       final response = await http.get(Uri.parse(url));
@@ -343,12 +342,12 @@ class _HomePageState extends State<HomePage> {
                             future: Future.wait([
                               ApiPetitions.searchMovies(
                                   tagList,
-                                  apiKey,
+                                  Config.apiKey,
                                   FirebaseAuth.instance.currentUser!
                                       .uid), // Buscar pelis
                               ApiPetitions.searchSeries(
                                   tagList,
-                                  apiKey,
+                                  Config.apiKey,
                                   FirebaseAuth.instance.currentUser!
                                       .uid), // Buscar series
                             ]),

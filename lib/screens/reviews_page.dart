@@ -4,6 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:wtv/config.dart';
 import 'package:wtv/screens/home_page.dart';
 import 'package:wtv/screens/profile_page.dart';
 import 'package:wtv/screens/social_page.dart';
@@ -19,14 +20,13 @@ class _ReviewsPageState extends State<ReviewsPage> {
   final TextEditingController _searchController = TextEditingController();
   Map<String, dynamic>? _movieData;
   final _reviewController = TextEditingController();
-  final String _tmdbApiKey = 'c399b9dc6a126d4c4de99e265544cabb';
 
   Future<void> _searchMovie() async {
     final query = _searchController.text.trim();
     if (query.isEmpty) return;
 
     final url = Uri.parse(
-        'https://api.themoviedb.org/3/search/movie?query=$query&api_key=$_tmdbApiKey');
+        'https://api.themoviedb.org/3/search/movie?query=$query&api_key=${Config.apiKey}');
     final response = await http.get(url);
 
     if (response.statusCode == 200) {

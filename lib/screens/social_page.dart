@@ -1,9 +1,7 @@
-import 'dart:convert';
-
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
+import 'package:wtv/config.dart';
 import 'package:wtv/endpoints/api_petitions.dart';
 import 'package:wtv/screens/home_page.dart';
 import 'package:wtv/screens/profile_page.dart';
@@ -26,16 +24,17 @@ class _SocialPageState extends State<SocialPage> {
       []; // Llista per guardar els contactes
   Set<int> _selectedFriends = {};
   List<Map<String, dynamic>> _groupsList = [];
-  final String apiKey = 'c399b9dc6a126d4c4de99e265544cabb';
   int? _selectedGroupIndex;
+  List<String> friendTags = [];
 
   @override
   void initState() {
     super.initState();
     _fetchFriends(); // Carregar els contactes quan s'inicia la pantalla
     _fetchGroups();
-    genresFromFirestore =
-        ApiPetitions.getGenresLists(FirebaseAuth.instance.currentUser!.uid);
+    genresFromFirestore = ApiPetitions.getGenresLists(
+        FirebaseAuth.instance.currentUser!.uid,
+        friendTags: friendTags);
   }
 
   // Funció per recuperar els contactes de la col·lecció 'friends' de Firestore
@@ -347,47 +346,6 @@ class _SocialPageState extends State<SocialPage> {
     }
   }
 
-  // Funció per recuperar pel·lícules o sèries amb els tags i les plataformes
-  Future<List<dynamic>> _fetchMoviesOrShows(
-      String type, Map<String, dynamic> group, String apiKey) async {
-    Map<String, int> gentresMap = await ApiPetitions.getGenresMap(apiKey);
-    List<String> groupTags = List<String>.from(group['tags']);
-    List<String> groupPlatforms = List<String>.from(group['channels']);
-
-    List<dynamic> results = [];
-
-    try {
-      // Codificar els valors correctament
-      String tags = groupTags.join(',');
-      String platforms = groupPlatforms.join(',');
-
-      final url = Uri.parse(
-        'https://api.themoviedb.org/3/discover/$type?api_key=$apiKey&language=es-ES&with_genres=$tags&with_watch_providers=$platforms&watch_region=ES',
-      );
-      /* final url = Uri.parse(
-          'https://api.themoviedb.org/3/trending/movie/week?api_key=$apiKey'); */
-
-      // Afegeix un temps d'espera (timeout) per evitar que la petició s'aturi prematurament
-      final response = await http.get(url).timeout(Duration(seconds: 20));
-
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        results = data['results'];
-      } else {
-        throw Exception(
-            'Error recuperant dades de TMDB: ${response.statusCode}');
-      }
-    } catch (e) {
-      print('Error al recuperar les pel·lícules o sèries: $e');
-      // Si hi ha un error, mostrem un missatge més clar
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error al carregar les dades: $e')),
-      );
-    }
-
-    return results;
-  }
-
   @override
   Widget build(BuildContext context) {
     double screenHeight = MediaQuery.of(context).size.height;
@@ -522,7 +480,7 @@ class _SocialPageState extends State<SocialPage> {
                         height: screenHeight * 0.25,
                         child: ListView.builder(
                           itemCount: _groupsList
-                              .length, // Usar el nombre de grups recuperats
+                              .length, // Usar el numero de grups recuperats
                           itemBuilder: (context, index) {
                             final group = _groupsList[
                                 index]; // Obtenir les dades del grup
@@ -538,6 +496,9 @@ class _SocialPageState extends State<SocialPage> {
                                     setState(() {
                                       _selectedGroupIndex = index;
                                     });
+
+                                    friendTags =
+                                        List<String>.from(group['tags']);
                                   },
                                 ),
                               ),
@@ -617,12 +578,12 @@ class _SocialPageState extends State<SocialPage> {
                                       future: Future.wait([
                                         ApiPetitions.searchMovies(
                                             tagList,
-                                            apiKey,
+                                            Config.apiKey,
                                             FirebaseAuth.instance.currentUser!
                                                 .uid), // Buscar pelis
                                         ApiPetitions.searchSeries(
                                             tagList,
-                                            apiKey,
+                                            Config.apiKey,
                                             FirebaseAuth.instance.currentUser!
                                                 .uid), // Buscar series
                                       ]),
@@ -646,19 +607,6 @@ class _SocialPageState extends State<SocialPage> {
                                             crossAxisAlignment:
                                                 CrossAxisAlignment.start,
                                             children: [
-                                              Padding(
-                                                padding:
-                                                    const EdgeInsets.all(8.0),
-                                                child: Text(
-                                                  'Gèneres: ${tagList.join(", ")}',
-                                                  style: TextStyle(
-                                                      fontSize: 20,
-                                                      fontWeight:
-                                                          FontWeight.bold,
-                                                      color:
-                                                          AppSytles.oxfordBlue),
-                                                ),
-                                              ),
                                               Padding(
                                                 padding:
                                                     const EdgeInsets.all(8.0),
