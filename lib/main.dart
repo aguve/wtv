@@ -18,6 +18,7 @@ class WtvApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      debugShowCheckedModeBanner: false,
       title: 'Home Design',
       theme: AppSytles.themeData,
       home: const Splash(),
