@@ -4,6 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:wtv/endpoints/api_petitions.dart';
 import 'package:wtv/screens/home_page.dart';
 import 'package:wtv/screens/profile_page.dart';
 import 'package:wtv/screens/reviews_page.dart';
@@ -18,6 +19,7 @@ class SocialPage extends StatefulWidget {
 class _SocialPageState extends State<SocialPage> {
   final _emailController = TextEditingController();
   final _nameController = TextEditingController();
+  late Future<List<List<String>>> genresFromFirestore;
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   List<Map<String, dynamic>> _friendsList =
@@ -32,6 +34,8 @@ class _SocialPageState extends State<SocialPage> {
     super.initState();
     _fetchFriends(); // Carregar els contactes quan s'inicia la pantalla
     _fetchGroups();
+    genresFromFirestore =
+        ApiPetitions.getGenresLists(FirebaseAuth.instance.currentUser!.uid);
   }
 
   // Funció per recuperar els contactes de la col·lecció 'friends' de Firestore
@@ -343,9 +347,10 @@ class _SocialPageState extends State<SocialPage> {
     }
   }
 
-// Funció per recuperar pel·lícules o sèries amb els tags i les plataformes
+  // Funció per recuperar pel·lícules o sèries amb els tags i les plataformes
   Future<List<dynamic>> _fetchMoviesOrShows(
       String type, Map<String, dynamic> group, String apiKey) async {
+    Map<String, int> gentresMap = await ApiPetitions.getGenresMap(apiKey);
     List<String> groupTags = List<String>.from(group['tags']);
     List<String> groupPlatforms = List<String>.from(group['channels']);
 
@@ -587,110 +592,199 @@ class _SocialPageState extends State<SocialPage> {
                               fontWeight: FontWeight.bold,
                               color: AppSytles.oxfordBlue),
                         ),
-                        Text(
-                          "Pelis:",
-                          style: TextStyle(
-                              fontSize: 15,
-                              fontWeight: FontWeight.bold,
-                              color: AppSytles.oxfordBlue),
-                        ),
-                        const SizedBox(height: 8),
                         SizedBox(
-                          height: screenHeight * 0.25,
-                          child: FutureBuilder(
-                            future: _fetchMoviesOrShows(
-                                'tv',
-                                _groupsList[_selectedGroupIndex!],
-                                apiKey), // Mostrar les sèries
+                          height: 450,
+                          child: FutureBuilder<List<List<String>>>(
+                            future: genresFromFirestore,
                             builder: (context, snapshot) {
                               if (snapshot.connectionState ==
                                   ConnectionState.waiting) {
-                                return Center(
+                                return const Center(
                                     child: CircularProgressIndicator());
-                              }
-
-                              if (snapshot.hasError) {
-                                return Text('Error carregant les sèries');
-                              }
-
-                              List<dynamic> seriesList =
-                                  snapshot.data as List<dynamic>;
-
-                              return ListView.builder(
-                                scrollDirection: Axis.horizontal,
-                                itemCount: seriesList.length,
-                                itemBuilder: (context, index) {
-                                  var series = seriesList[index];
-                                  return Card(
-                                    child: Column(
-                                      children: [
-                                        Image.network(
-                                          'https://image.tmdb.org/t/p/w500${series['poster_path']}',
-                                          height: 100,
-                                          width: 70,
-                                          fit: BoxFit.cover,
-                                        ),
-                                        Text(series['name'],
-                                            maxLines: 1,
-                                            overflow: TextOverflow.ellipsis),
-                                      ],
-                                    ),
-                                  );
-                                },
-                              );
-                            },
-                          ),
-                        ),
-                        SizedBox(height: 20),
-                        // Mostrem les pel·lícules
-                        Text("Series",
-                            style: TextStyle(
-                                fontSize: 15,
-                                fontWeight: FontWeight.bold,
-                                color: AppSytles.oxfordBlue)),
-                        SizedBox(
-                          height: screenHeight * 0.25,
-                          child: FutureBuilder(
-                            future: _fetchMoviesOrShows(
-                                'movie',
-                                _groupsList[_selectedGroupIndex!],
-                                apiKey), // Mostrar les pel·lícules
-                            builder: (context, snapshot) {
-                              if (snapshot.connectionState ==
-                                  ConnectionState.waiting) {
+                              } else if (snapshot.hasError) {
                                 return Center(
-                                    child: CircularProgressIndicator());
+                                    child: Text('Error: ${snapshot.error}'));
+                              } else if (snapshot.hasData) {
+                                final selectedTags = snapshot.data!;
+
+                                return ListView.builder(
+                                  itemCount: selectedTags.length,
+                                  itemBuilder: (context, index) {
+                                    final tagList = selectedTags[index];
+
+                                    return FutureBuilder<
+                                        List<List<Map<String, dynamic>>>>(
+                                      future: Future.wait([
+                                        ApiPetitions.searchMovies(
+                                            tagList,
+                                            apiKey,
+                                            FirebaseAuth.instance.currentUser!
+                                                .uid), // Buscar pelis
+                                        ApiPetitions.searchSeries(
+                                            tagList,
+                                            apiKey,
+                                            FirebaseAuth.instance.currentUser!
+                                                .uid), // Buscar series
+                                      ]),
+                                      builder: (context, snapshot) {
+                                        if (snapshot.connectionState ==
+                                            ConnectionState.waiting) {
+                                          return const Center(
+                                              child:
+                                                  CircularProgressIndicator());
+                                        } else if (snapshot.hasError) {
+                                          return Center(
+                                              child: Text(
+                                                  'Error: ${snapshot.error}'));
+                                        } else if (snapshot.hasData) {
+                                          final movies =
+                                              snapshot.data![0]; // pelis
+                                          final series =
+                                              snapshot.data![1]; // series
+
+                                          return Column(
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
+                                            children: [
+                                              Padding(
+                                                padding:
+                                                    const EdgeInsets.all(8.0),
+                                                child: Text(
+                                                  'Gèneres: ${tagList.join(", ")}',
+                                                  style: TextStyle(
+                                                      fontSize: 20,
+                                                      fontWeight:
+                                                          FontWeight.bold,
+                                                      color:
+                                                          AppSytles.oxfordBlue),
+                                                ),
+                                              ),
+                                              Padding(
+                                                padding:
+                                                    const EdgeInsets.all(8.0),
+                                                child: Text(
+                                                  'Pelis',
+                                                  style: TextStyle(
+                                                      fontSize: 16,
+                                                      fontWeight:
+                                                          FontWeight.bold,
+                                                      color:
+                                                          AppSytles.oxfordBlue),
+                                                ),
+                                              ),
+                                              // ListView de pelis
+                                              SizedBox(
+                                                height: 200,
+                                                child: ListView.builder(
+                                                  scrollDirection:
+                                                      Axis.horizontal,
+                                                  itemCount: movies.length,
+                                                  itemBuilder:
+                                                      (context, movieIndex) {
+                                                    final movie =
+                                                        movies[movieIndex];
+                                                    return Card(
+                                                      color:
+                                                          AppSytles.oxfordBlue,
+                                                      margin: const EdgeInsets
+                                                          .symmetric(
+                                                          horizontal: 8.0),
+                                                      child: Column(
+                                                        children: [
+                                                          Image.network(
+                                                              movie['imageUrl'],
+                                                              height: 165,
+                                                              width: 110,
+                                                              fit:
+                                                                  BoxFit.cover),
+                                                          Padding(
+                                                              padding:
+                                                                  const EdgeInsets
+                                                                      .only(
+                                                                      top: 8.0,
+                                                                      left: 4.0,
+                                                                      right:
+                                                                          4.0),
+                                                              child: Text(
+                                                                  '${movie['platforms'].join(', ')}'))
+                                                        ],
+                                                      ),
+                                                    );
+                                                  },
+                                                ),
+                                              ),
+                                              SizedBox(height: 10),
+                                              Padding(
+                                                padding:
+                                                    const EdgeInsets.all(8.0),
+                                                child: Text(
+                                                  'Series',
+                                                  style: TextStyle(
+                                                      fontSize: 16,
+                                                      fontWeight:
+                                                          FontWeight.bold,
+                                                      color:
+                                                          AppSytles.oxfordBlue),
+                                                ),
+                                              ),
+                                              SizedBox(
+                                                height: 200,
+                                                child: ListView.builder(
+                                                  scrollDirection:
+                                                      Axis.horizontal,
+                                                  itemCount: series.length,
+                                                  itemBuilder:
+                                                      (context, seriesIndex) {
+                                                    final serie =
+                                                        series[seriesIndex];
+                                                    return Card(
+                                                      color:
+                                                          AppSytles.oxfordBlue,
+                                                      margin: const EdgeInsets
+                                                          .symmetric(
+                                                          horizontal: 8.0),
+                                                      child: Column(
+                                                        children: [
+                                                          Image.network(
+                                                              serie['imageUrl'],
+                                                              height: 165,
+                                                              width: 110,
+                                                              fit:
+                                                                  BoxFit.cover),
+                                                          Padding(
+                                                            padding:
+                                                                const EdgeInsets
+                                                                    .only(
+                                                                    top: 8.0,
+                                                                    left: 4.0,
+                                                                    right:
+                                                                        4.0), // Afegir un padding superior
+                                                            child: Text(
+                                                              '${serie['platforms'].join(', ')}',
+                                                            ),
+                                                          ),
+                                                        ],
+                                                      ),
+                                                    );
+                                                  },
+                                                ),
+                                              ),
+                                              SizedBox(height: 15),
+                                            ],
+                                          );
+                                        } else {
+                                          return Center(
+                                              child: Text(
+                                                  'No s\'han trobat resultats.'));
+                                        }
+                                      },
+                                    );
+                                  },
+                                );
+                              } else {
+                                return const Center(
+                                    child: Text('No s\'han trobat gèneres.'));
                               }
-
-                              if (snapshot.hasError) {
-                                return Text('Error carregant les pel·lícules');
-                              }
-
-                              List<dynamic> moviesList =
-                                  snapshot.data as List<dynamic>;
-
-                              return ListView.builder(
-                                scrollDirection: Axis.horizontal,
-                                itemCount: moviesList.length,
-                                itemBuilder: (context, index) {
-                                  var movie = moviesList[index];
-                                  return Card(
-                                    child: Column(
-                                      children: [
-                                        Image.network(
-                                          'https://image.tmdb.org/t/p/w500${movie['poster_path']}',
-                                          height: 100,
-                                          width: 70,
-                                          fit: BoxFit.cover,
-                                        ),
-                                        Text(movie['title'],
-                                            maxLines: 1,
-                                            overflow: TextOverflow.ellipsis),
-                                      ],
-                                    ),
-                                  );
-                                },
-                              );
                             },
                           ),
                         ),

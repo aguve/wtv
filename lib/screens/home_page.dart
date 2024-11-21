@@ -5,8 +5,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
-import 'package:wtv/models/movie_list.dart' as moviesResult;
-import 'package:wtv/models/series_list.dart' as seriesResult;
+import 'package:wtv/endpoints/api_petitions.dart';
 import 'package:wtv/screens/profile_page.dart';
 import 'package:wtv/screens/reviews_page.dart';
 import 'package:wtv/screens/social_page.dart';
@@ -31,7 +30,7 @@ class _HomePageState extends State<HomePage> {
     _filmsAndTv4u =
         fetchMoviesAndSeries(FirebaseAuth.instance.currentUser!.uid);
     genresFromFirestore =
-        getGenresLists(FirebaseAuth.instance.currentUser!.uid);
+        ApiPetitions.getGenresLists(FirebaseAuth.instance.currentUser!.uid);
   }
 
   Future<List<Map<String, dynamic>>> fetchMoviesAndSeries(String uid) async {
@@ -42,7 +41,7 @@ class _HomePageState extends State<HomePage> {
 
     // plataformes de l'usuari
     List<Map<String, dynamic>> selectedPlatforms =
-        await getSelectedPlatforms(uid);
+        await ApiPetitions.getSelectedPlatforms(uid);
 
     List selectedPlatformNames =
         selectedPlatforms.map((platform) => platform['name']).toList();
@@ -60,7 +59,8 @@ class _HomePageState extends State<HomePage> {
         var first5movies = moviesData.take(10);
         List<Map<String, dynamic>> movies = [];
         for (var item in first5movies) {
-          final platforms = await fetchPlatforms(item['id'], 'movie');
+          final platforms =
+              await ApiPetitions.fetchPlatforms(item['id'], 'movie');
           final filteredPlatforms = platforms
               .where((platform) => selectedPlatformNames.contains(platform))
               .toList();
@@ -78,7 +78,7 @@ class _HomePageState extends State<HomePage> {
         var first5series = seriesData.take(10);
         List<Map<String, dynamic>> series = [];
         for (var item in first5series) {
-          final platforms = await fetchPlatforms(item['id'], 'tv');
+          final platforms = await ApiPetitions.fetchPlatforms(item['id'], 'tv');
           final filteredPlatforms = platforms
               .where((platform) => selectedPlatformNames.contains(platform))
               .toList();
@@ -98,152 +98,6 @@ class _HomePageState extends State<HomePage> {
       }
     } catch (e) {
       throw Exception('Error: $e');
-    }
-  }
-
-  Future<List<Map<String, dynamic>>> searchMovies(
-      List<String> tags, String apiKey, String uid) async {
-    Map<String, int> genresMap = await getGenresMap(apiKey);
-    // Recuperar les plataformes seleccionades per l'usuari
-    List<Map<String, dynamic>> selectedPlatforms =
-        await getSelectedPlatforms(uid);
-    List<int> selectedPlatformIds = [];
-    for (var platform in selectedPlatforms) {
-      selectedPlatformIds.add(platform['id']);
-    }
-    //selectedPlatforms.map((platform) => platform['id']).toList();
-
-    // Crear una cadena amb els ID de les plataformes seleccionades
-    //String platformsQuery = selectedPlatformIds.join(',');
-
-    String url =
-        'https://api.themoviedb.org/3/discover/movie?api_key=$apiKey&language=es-ES&with_genres=';
-
-    List<int> genreIds = tags
-        .map((tag) => genresMap[tag]) // Mapea los tags a los IDs de géneros
-        .where((id) => id != null) // Filtra los valores nulos
-        .cast<int>() // Convierte el tipo de la lista a List<int>
-        .toList(); // Convierte a lista
-
-    String genreIdsString = genreIds.join(',');
-    url += genreIdsString;
-    // Afegir el paràmetre de proveïdors de streaming a la consulta
-    /* if (platformsQuery.isNotEmpty) {
-      url += '&with_watch_providers=$platformsQuery&watch_region=ES';
-    } */
-
-    final response = await http.get(Uri.parse(url));
-
-    if (response.statusCode == 200) {
-      final movieList = moviesResult.movieListFromJson(response.body);
-      // Especificar explícitamente el tipo en el Future.wait
-      List<Map<String, dynamic>> returnData = await Future.wait(
-          movieList.results.map((moviesResult.Result item) async {
-        // Cridar fetchPlatforms per a cada pel·lícula
-        List<String> platforms = await fetchPlatforms(item.id, 'movie');
-        List<String> plat = platforms.isNotEmpty ? [platforms.first] : [];
-
-        return {
-          'title': item.title,
-          'imageUrl': 'https://image.tmdb.org/t/p/w500${item.posterPath}',
-          'platforms': plat, // Afegir el primer element de platforms
-        };
-      }).toList());
-
-      debugPrint(returnData.runtimeType.toString());
-      return returnData; // Ja no cal fer cast
-    } else {
-      throw Exception('Error al cargar las películas');
-    }
-  }
-
-  Future<List<Map<String, dynamic>>> searchSeries(
-      List<String> tags, String apiKey, String uid) async {
-    Map<String, int> genresMap = await getGenresMap(apiKey);
-    String url =
-        'https://api.themoviedb.org/3/discover/tv?api_key=$apiKey&language=es-ES&with_genres=';
-
-    List<int> genreIds = tags
-        .map((tag) => genresMap[tag]) // Mapea los tags a los IDs de géneros
-        .where((id) => id != null) // Filtra los valores nulos
-        .cast<int>() // Convierte el tipo de la lista a List<int>
-        .toList(); // Convierte a lista
-
-    String genreIdsString = genreIds.join(',');
-    url += genreIdsString;
-    final response = await http.get(Uri.parse(url));
-
-    if (response.statusCode == 200) {
-      final serieList = seriesResult.serieListFromJson(response.body);
-      List<Map<String, dynamic>> returnData = await Future.wait(
-          serieList.results.map((seriesResult.Result item) async {
-        List<String> platforms = await fetchPlatforms(item.id, 'tv');
-        List<String> plat = platforms.isNotEmpty ? [platforms.first] : [];
-        return {
-          'title': item.name,
-          'imageUrl': 'https://image.tmdb.org/t/p/w500${item.posterPath}',
-          'platforms': plat, // Afegir el primer element de platforms
-        };
-      }).toList());
-
-      return returnData;
-    } else {
-      throw Exception('Error al cargar las series');
-    }
-  }
-
-  Future<List<String>> fetchPlatforms(int id, String type) async {
-    final String url =
-        'https://api.themoviedb.org/3/$type/$id/watch/providers?api_key=$apiKey';
-
-    final response = await http.get(Uri.parse(url));
-    if (response.statusCode == 200) {
-      final data = json.decode(response.body);
-      final results = data['results']['ES'];
-      if (results != null && results['flatrate'] != null) {
-        return (results['flatrate'] as List)
-            .map((item) => item['provider_name'].toString())
-            .toList();
-      }
-    }
-    return [];
-  }
-
-  Future<Map<String, int>> getGenresMap(String apiKey) async {
-    final movieGenresUrl =
-        'https://api.themoviedb.org/3/genre/movie/list?api_key=$apiKey&language=es-ES';
-    final tvGenresUrl =
-        'https://api.themoviedb.org/3/genre/tv/list?api_key=$apiKey&language=es-ES';
-
-    try {
-      final movieResponse = await http.get(Uri.parse(movieGenresUrl));
-      final tvResponse = await http.get(Uri.parse(tvGenresUrl));
-
-      if (movieResponse.statusCode == 200 && tvResponse.statusCode == 200) {
-        // Parse the movie genres and tv genres
-        final movieGenres = json.decode(movieResponse.body)['genres'] as List;
-        final tvGenres = json.decode(tvResponse.body)['genres'] as List;
-
-        // Map genre names to ids for movies and tv
-        Map<String, int> genresMap = {};
-
-        // Map movie genres
-        for (var genre in movieGenres) {
-          genresMap[genre['name']] = genre['id'];
-        }
-
-        // Map tv genres
-        for (var genre in tvGenres) {
-          genresMap[genre['name']] = genre['id'];
-        }
-
-        return genresMap;
-      } else {
-        throw Exception('Failed to load genres');
-      }
-    } catch (e) {
-      print('Error: $e');
-      return {};
     }
   }
 
@@ -273,28 +127,6 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
-  Future<List<List<String>>> getGenresLists(String uid) async {
-    List<List<String>> genresLists = [];
-
-    try {
-      QuerySnapshot querySnapshot = await FirebaseFirestore.instance
-          .collection('users')
-          .doc(uid)
-          .collection('groups')
-          .get();
-
-      for (var doc in querySnapshot.docs) {
-        List<String> genres = List<String>.from(doc['genres']);
-        genresLists.add(genres);
-      }
-
-      return genresLists;
-    } catch (e) {
-      print('Error obtenint llistes de tags: $e');
-      return [];
-    }
-  }
-
   Future<List<Map<String, dynamic>>> getSelectedStreamingPlatforms(
       String uid) async {
     try {
@@ -318,34 +150,6 @@ class _HomePageState extends State<HomePage> {
       }
     } catch (e) {
       print('Error en obtenir les plataformes seleccionades: $e');
-      return [];
-    }
-  }
-
-  Future<List<Map<String, dynamic>>> getSelectedPlatforms(String uid) async {
-    // Obtener el documento del usuario desde Firestore
-    DocumentSnapshot userDoc =
-        await FirebaseFirestore.instance.collection('users').doc(uid).get();
-
-    // Asegúrate de que el documento existe
-    if (userDoc.exists) {
-      // Obtener las plataformas seleccionadas (array)
-      List<dynamic> selectedPlatformsData =
-          userDoc['selectedStreamingPlatforms'] ?? [];
-
-      List<Map<String, dynamic>> selectedPlatforms = [];
-
-      // Usamos forEach para recorrer cada elemento del array y devolverlo en el formato deseado
-      selectedPlatformsData.forEach((platform) {
-        selectedPlatforms.add({
-          'id': platform['index'], // El índice de la plataforma
-          'name': platform['name'], // El nombre de la plataforma
-        });
-      });
-
-      return selectedPlatforms;
-    } else {
-      print('El documento del usuario no existe');
       return [];
     }
   }
@@ -537,12 +341,12 @@ class _HomePageState extends State<HomePage> {
                           return FutureBuilder<
                               List<List<Map<String, dynamic>>>>(
                             future: Future.wait([
-                              searchMovies(
+                              ApiPetitions.searchMovies(
                                   tagList,
                                   apiKey,
                                   FirebaseAuth.instance.currentUser!
                                       .uid), // Buscar pelis
-                              searchSeries(
+                              ApiPetitions.searchSeries(
                                   tagList,
                                   apiKey,
                                   FirebaseAuth.instance.currentUser!

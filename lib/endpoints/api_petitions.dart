@@ -45,7 +45,7 @@ class ApiPetitions {
   }
 
   //
-  Future<Map<String, int>> getGenresMap(String apiKey) async {
+  static Future<Map<String, int>> getGenresMap(String apiKey) async {
     final movieGenresUrl =
         'https://api.themoviedb.org/3/genre/movie/list?api_key=$apiKey&language=es-ES';
     final tvGenresUrl =
@@ -83,7 +83,8 @@ class ApiPetitions {
     }
   }
 
-  Future<List<Map<String, dynamic>>> getSelectedPlatforms(String uid) async {
+  static Future<List<Map<String, dynamic>>> getSelectedPlatforms(
+      String uid) async {
     // Obtener el documento del usuario desde Firestore
     DocumentSnapshot userDoc =
         await FirebaseFirestore.instance.collection('users').doc(uid).get();
@@ -111,7 +112,7 @@ class ApiPetitions {
     }
   }
 
-  Future<List<String>> fetchPlatforms(int id, String type) async {
+  static Future<List<String>> fetchPlatforms(int id, String type) async {
     final String url =
         'https://api.themoviedb.org/3/$type/$id/watch/providers?api_key=$apiKey';
 
@@ -128,7 +129,7 @@ class ApiPetitions {
     return [];
   }
 
-  Future<List<Map<String, dynamic>>> searchMovies(
+  static Future<List<Map<String, dynamic>>> searchMovies(
       List<String> tags, String apiKey, String uid) async {
     Map<String, int> genresMap = await getGenresMap(apiKey);
     // Recuperar les plataformes seleccionades per l'usuari
@@ -184,17 +185,17 @@ class ApiPetitions {
     }
   }
 
-  Future<List<Map<String, dynamic>>> searchSeries(
+  static Future<List<Map<String, dynamic>>> searchSeries(
       List<String> tags, String apiKey, String uid) async {
     Map<String, int> genresMap = await getGenresMap(apiKey);
     String url =
         'https://api.themoviedb.org/3/discover/tv?api_key=$apiKey&language=es-ES&with_genres=';
 
     List<int> genreIds = tags
-        .map((tag) => genresMap[tag]) // Mapea los tags a los IDs de géneros
-        .where((id) => id != null) // Filtra los valores nulos
-        .cast<int>() // Convierte el tipo de la lista a List<int>
-        .toList(); // Convierte a lista
+        .map((tag) => genresMap[tag]) // Mapeja els tags als IDs de gènere
+        .where((id) => id != null) // Filtra els valors nuls
+        .cast<int>() // Converteix el tipus de la lista a List<int>
+        .toList(); // Converteix a lista
 
     String genreIdsString = genreIds.join(',');
     url += genreIdsString;
@@ -216,6 +217,28 @@ class ApiPetitions {
       return returnData;
     } else {
       throw Exception('Error al cargar las series');
+    }
+  }
+
+  static Future<List<List<String>>> getGenresLists(String uid) async {
+    List<List<String>> genresLists = [];
+
+    try {
+      QuerySnapshot querySnapshot = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(uid)
+          .collection('groups')
+          .get();
+
+      for (var doc in querySnapshot.docs) {
+        List<String> genres = List<String>.from(doc['genres']);
+        genresLists.add(genres);
+      }
+
+      return genresLists;
+    } catch (e) {
+      print('Error obtenint llistes de tags: $e');
+      return [];
     }
   }
 }
