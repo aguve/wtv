@@ -2,7 +2,7 @@
 
 A new Flutter project.
 
-## Getting Started
+## Let you brain rest in peace. 
 
 This project is a starting point for a Flutter application.
 

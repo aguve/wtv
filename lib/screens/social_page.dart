@@ -549,14 +549,19 @@ class _SocialPageState extends State<SocialPage> {
                         Text(
                           "Per al grup!",
                           style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                              color: AppSytles.oxfordBlue),
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: AppSytles.oxfordBlue,
+                          ),
                         ),
                         SizedBox(
-                          height: 450,
-                          child: FutureBuilder<List<List<String>>>(
-                            future: genresFromFirestore,
+                          height: 510,
+                          child: FutureBuilder<List<String>>(
+                            // Future per aplanar els gèneres
+                            future: genresFromFirestore.then((listOfLists) =>
+                                listOfLists
+                                    .expand((list) => list)
+                                    .toList()), // Aplana la llista
                             builder: (context, snapshot) {
                               if (snapshot.connectionState ==
                                   ConnectionState.waiting) {
@@ -565,173 +570,206 @@ class _SocialPageState extends State<SocialPage> {
                               } else if (snapshot.hasError) {
                                 return Center(
                                     child: Text('Error: ${snapshot.error}'));
-                              } else if (snapshot.hasData) {
-                                final selectedTags = snapshot.data!;
+                              } else if (snapshot.hasData &&
+                                  snapshot.data!.isNotEmpty) {
+                                final flattenedTags = snapshot.data!;
 
-                                return ListView.builder(
-                                  itemCount: selectedTags.length,
-                                  itemBuilder: (context, index) {
-                                    final tagList = selectedTags[index];
+                                // Cerca de pel·lícules i sèries amb tots els tags
+                                return FutureBuilder<
+                                    List<List<Map<String, dynamic>>>>(
+                                  future: Future.wait([
+                                    ApiPetitions.searchMovies(
+                                      flattenedTags,
+                                      Config.apiKey,
+                                      FirebaseAuth.instance.currentUser!.uid,
+                                    ),
+                                    ApiPetitions.searchSeries(
+                                      flattenedTags,
+                                      Config.apiKey,
+                                      FirebaseAuth.instance.currentUser!.uid,
+                                    ),
+                                  ]),
+                                  builder: (context, snapshot) {
+                                    if (snapshot.connectionState ==
+                                        ConnectionState.waiting) {
+                                      return const Center(
+                                          child: CircularProgressIndicator());
+                                    } else if (snapshot.hasError) {
+                                      return Center(
+                                          child:
+                                              Text('Error: ${snapshot.error}'));
+                                    } else if (snapshot.hasData) {
+                                      final movies =
+                                          snapshot.data![0]; // Pel·lícules
+                                      final series =
+                                          snapshot.data![1]; // Sèries
 
-                                    return FutureBuilder<
-                                        List<List<Map<String, dynamic>>>>(
-                                      future: Future.wait([
-                                        ApiPetitions.searchMovies(
-                                            tagList,
-                                            Config.apiKey,
-                                            FirebaseAuth.instance.currentUser!
-                                                .uid), // Buscar pelis
-                                        ApiPetitions.searchSeries(
-                                            tagList,
-                                            Config.apiKey,
-                                            FirebaseAuth.instance.currentUser!
-                                                .uid), // Buscar series
-                                      ]),
-                                      builder: (context, snapshot) {
-                                        if (snapshot.connectionState ==
-                                            ConnectionState.waiting) {
-                                          return const Center(
-                                              child:
-                                                  CircularProgressIndicator());
-                                        } else if (snapshot.hasError) {
-                                          return Center(
-                                              child: Text(
-                                                  'Error: ${snapshot.error}'));
-                                        } else if (snapshot.hasData) {
-                                          final movies =
-                                              snapshot.data![0]; // pelis
-                                          final series =
-                                              snapshot.data![1]; // series
+                                      return Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Padding(
+                                            padding: const EdgeInsets.all(8.0),
+                                            child: Text(
+                                              'Pelis',
+                                              style: TextStyle(
+                                                fontSize: 16,
+                                                fontWeight: FontWeight.bold,
+                                                color: AppSytles.oxfordBlue,
+                                              ),
+                                            ),
+                                          ),
+                                          SizedBox(
+                                            height: 200,
+                                            child: ListView.builder(
+                                              scrollDirection: Axis.horizontal,
+                                              itemCount: movies.length,
+                                              itemBuilder:
+                                                  (context, movieIndex) {
+                                                final movie =
+                                                    movies[movieIndex];
+                                                final imageUrl = movie[
+                                                        'imageUrl'] ??
+                                                    ''; // Gestiona valors null
+                                                final platforms = movie[
+                                                        'platforms'] ??
+                                                    []; // Evita null en llistes
 
-                                          return Column(
-                                            crossAxisAlignment:
-                                                CrossAxisAlignment.start,
-                                            children: [
-                                              Padding(
-                                                padding:
-                                                    const EdgeInsets.all(8.0),
-                                                child: Text(
-                                                  'Pelis',
-                                                  style: TextStyle(
-                                                      fontSize: 16,
-                                                      fontWeight:
-                                                          FontWeight.bold,
-                                                      color:
-                                                          AppSytles.oxfordBlue),
-                                                ),
-                                              ),
-                                              // ListView de pelis
-                                              SizedBox(
-                                                height: 200,
-                                                child: ListView.builder(
-                                                  scrollDirection:
-                                                      Axis.horizontal,
-                                                  itemCount: movies.length,
-                                                  itemBuilder:
-                                                      (context, movieIndex) {
-                                                    final movie =
-                                                        movies[movieIndex];
-                                                    return Card(
-                                                      color:
-                                                          AppSytles.oxfordBlue,
-                                                      margin: const EdgeInsets
-                                                          .symmetric(
-                                                          horizontal: 8.0),
-                                                      child: Column(
-                                                        children: [
-                                                          Image.network(
-                                                              movie['imageUrl'],
-                                                              height: 165,
-                                                              width: 110,
-                                                              fit:
-                                                                  BoxFit.cover),
-                                                          Padding(
-                                                              padding:
-                                                                  const EdgeInsets
-                                                                      .only(
-                                                                      top: 8.0,
-                                                                      left: 4.0,
-                                                                      right:
-                                                                          4.0),
-                                                              child: Text(
-                                                                  '${movie['platforms'].join(', ')}'))
-                                                        ],
-                                                      ),
-                                                    );
-                                                  },
-                                                ),
-                                              ),
-                                              SizedBox(height: 10),
-                                              Padding(
-                                                padding:
-                                                    const EdgeInsets.all(8.0),
-                                                child: Text(
-                                                  'Series',
-                                                  style: TextStyle(
-                                                      fontSize: 16,
-                                                      fontWeight:
-                                                          FontWeight.bold,
-                                                      color:
-                                                          AppSytles.oxfordBlue),
-                                                ),
-                                              ),
-                                              SizedBox(
-                                                height: 200,
-                                                child: ListView.builder(
-                                                  scrollDirection:
-                                                      Axis.horizontal,
-                                                  itemCount: series.length,
-                                                  itemBuilder:
-                                                      (context, seriesIndex) {
-                                                    final serie =
-                                                        series[seriesIndex];
-                                                    return Card(
-                                                      color:
-                                                          AppSytles.oxfordBlue,
-                                                      margin: const EdgeInsets
-                                                          .symmetric(
-                                                          horizontal: 8.0),
-                                                      child: Column(
-                                                        children: [
-                                                          Image.network(
-                                                              serie['imageUrl'],
-                                                              height: 165,
-                                                              width: 110,
-                                                              fit:
-                                                                  BoxFit.cover),
-                                                          Padding(
-                                                            padding:
-                                                                const EdgeInsets
-                                                                    .only(
-                                                                    top: 8.0,
-                                                                    left: 4.0,
-                                                                    right:
-                                                                        4.0), // Afegir un padding superior
-                                                            child: Text(
-                                                              '${serie['platforms'].join(', ')}',
+                                                return Card(
+                                                  color: AppSytles.oxfordBlue,
+                                                  margin: const EdgeInsets
+                                                      .symmetric(
+                                                      horizontal: 8.0),
+                                                  child: Column(
+                                                    children: [
+                                                      Image.network(
+                                                        imageUrl,
+                                                        height: 165,
+                                                        width: 110,
+                                                        fit: BoxFit.cover,
+                                                        errorBuilder: (context,
+                                                            error, stackTrace) {
+                                                          return const SizedBox(
+                                                            height: 165,
+                                                            width: 110,
+                                                            child: Center(
+                                                              child: Icon(
+                                                                  Icons
+                                                                      .broken_image,
+                                                                  size: 50),
                                                             ),
-                                                          ),
-                                                        ],
+                                                          );
+                                                        },
                                                       ),
-                                                    );
-                                                  },
-                                                ),
+                                                      Padding(
+                                                        padding:
+                                                            const EdgeInsets
+                                                                .only(
+                                                          top: 8.0,
+                                                          left: 4.0,
+                                                          right: 4.0,
+                                                        ),
+                                                        child: Text(
+                                                          platforms.isNotEmpty
+                                                              ? platforms.first
+                                                              : '',
+                                                        ),
+                                                      ),
+                                                    ],
+                                                  ),
+                                                );
+                                              },
+                                            ),
+                                          ),
+                                          SizedBox(height: 10),
+                                          Padding(
+                                            padding: const EdgeInsets.all(8.0),
+                                            child: Text(
+                                              'Series',
+                                              style: TextStyle(
+                                                fontSize: 16,
+                                                fontWeight: FontWeight.bold,
+                                                color: AppSytles.oxfordBlue,
                                               ),
-                                              SizedBox(height: 15),
-                                            ],
-                                          );
-                                        } else {
-                                          return Center(
-                                              child: Text(
-                                                  'No s\'han trobat resultats.'));
-                                        }
-                                      },
-                                    );
+                                            ),
+                                          ),
+                                          SizedBox(
+                                            height: 200,
+                                            child: ListView.builder(
+                                              scrollDirection: Axis.horizontal,
+                                              itemCount: series.length,
+                                              itemBuilder:
+                                                  (context, seriesIndex) {
+                                                final serie =
+                                                    series[seriesIndex];
+                                                final imageUrl = serie[
+                                                        'imageUrl'] ??
+                                                    ''; // Gestiona valors null
+                                                final platforms = serie[
+                                                        'platforms'] ??
+                                                    []; // Evita null en llistes
+
+                                                return Card(
+                                                  color: AppSytles.oxfordBlue,
+                                                  margin: const EdgeInsets
+                                                      .symmetric(
+                                                      horizontal: 8.0),
+                                                  child: Column(
+                                                    children: [
+                                                      Image.network(
+                                                        imageUrl,
+                                                        height: 165,
+                                                        width: 110,
+                                                        fit: BoxFit.cover,
+                                                        errorBuilder: (context,
+                                                            error, stackTrace) {
+                                                          return const SizedBox(
+                                                            height: 165,
+                                                            width: 110,
+                                                            child: Center(
+                                                              child: Icon(
+                                                                  Icons
+                                                                      .broken_image,
+                                                                  size: 50),
+                                                            ),
+                                                          );
+                                                        },
+                                                      ),
+                                                      Padding(
+                                                        padding:
+                                                            const EdgeInsets
+                                                                .only(
+                                                          top: 8.0,
+                                                          left: 4.0,
+                                                          right: 4.0,
+                                                        ),
+                                                        child: Text(
+                                                          platforms.isNotEmpty
+                                                              ? platforms.first
+                                                              : '',
+                                                        ),
+                                                      ),
+                                                    ],
+                                                  ),
+                                                );
+                                              },
+                                            ),
+                                          ),
+                                          SizedBox(height: 15),
+                                        ],
+                                      );
+                                    } else {
+                                      return const Center(
+                                        child:
+                                            Text('No s\'han trobat resultats.'),
+                                      );
+                                    }
                                   },
                                 );
                               } else {
                                 return const Center(
-                                    child: Text('No s\'han trobat gèneres.'));
+                                  child: Text('No s\'han trobat gèneres.'),
+                                );
                               }
                             },
                           ),
@@ -739,7 +777,7 @@ class _SocialPageState extends State<SocialPage> {
                       ],
                     ),
                   ),
-                ),
+                )
               ],
             ],
           ),

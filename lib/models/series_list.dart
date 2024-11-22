@@ -22,11 +22,12 @@ class SerieList {
   });
 
   factory SerieList.fromJson(Map<String, dynamic> json) => SerieList(
-        page: json["page"],
-        results:
-            List<Result>.from(json["results"].map((x) => Result.fromJson(x))),
-        totalPages: json["total_pages"],
-        totalResults: json["total_results"],
+        page: json["page"] ?? 0,
+        results: json["results"] != null
+            ? List<Result>.from(json["results"].map((x) => Result.fromJson(x)))
+            : [],
+        totalPages: json["total_pages"] ?? 0,
+        totalResults: json["total_results"] ?? 0,
       );
 
   Map<String, dynamic> toJson() => {
@@ -45,12 +46,12 @@ class Result {
   final List<String> originCountry;
   final String originalLanguage;
   final String originalName;
-  final String overview;
-  final double popularity;
-  final String posterPath;
-  final DateTime firstAirDate;
+  final String? overview; // Permet null
+  final double? popularity; // Permet null
+  final String? posterPath; // Permet null
+  final DateTime? firstAirDate; // Permet null
   final String name;
-  final double voteAverage;
+  final double? voteAverage;
   final int voteCount;
 
   Result({
@@ -71,20 +72,26 @@ class Result {
   });
 
   factory Result.fromJson(Map<String, dynamic> json) => Result(
-        adult: json["adult"],
+        adult: json["adult"] ?? false,
         backdropPath: json["backdrop_path"],
         genreIds: List<int>.from(json["genre_ids"].map((x) => x)),
         id: json["id"],
         originCountry: List<String>.from(json["origin_country"].map((x) => x)),
-        originalLanguage: json["original_language"],
-        originalName: json["original_name"],
+        originalLanguage: json["original_language"] ?? '',
+        originalName: json["original_name"] ?? '',
         overview: json["overview"],
-        popularity: json["popularity"]?.toDouble(),
+        popularity:
+            json["popularity"] != null ? json["popularity"].toDouble() : null,
         posterPath: json["poster_path"],
-        firstAirDate: DateTime.parse(json["first_air_date"]),
-        name: json["name"],
-        voteAverage: json["vote_average"]?.toDouble(),
-        voteCount: json["vote_count"],
+        firstAirDate:
+            json["first_air_date"] != null && json["first_air_date"].isNotEmpty
+                ? DateTime.parse(json["first_air_date"])
+                : null,
+        name: json["name"] ?? '',
+        voteAverage: json["vote_average"] != null
+            ? json["vote_average"].toDouble()
+            : null,
+        voteCount: json["vote_count"] ?? 0,
       );
 
   Map<String, dynamic> toJson() => {
@@ -99,7 +106,7 @@ class Result {
         "popularity": popularity,
         "poster_path": posterPath,
         "first_air_date":
-            "${firstAirDate.year.toString().padLeft(4, '0')}-${firstAirDate.month.toString().padLeft(2, '0')}-${firstAirDate.day.toString().padLeft(2, '0')}",
+            "${firstAirDate!.year.toString().padLeft(4, '0')}-${firstAirDate?.month.toString().padLeft(2, '0')}-${firstAirDate?.day.toString().padLeft(2, '0')}",
         "name": name,
         "vote_average": voteAverage,
         "vote_count": voteCount,
