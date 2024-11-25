@@ -178,12 +178,14 @@ class _SocialPageState extends State<SocialPage> {
                 decoration: InputDecoration(
                   labelText: "Correu electrònic",
                 ),
+                style: TextStyle(color: AppSytles.oxfordBlue),
               ),
               TextField(
                 controller: _nameController,
                 decoration: InputDecoration(
                   labelText: "Nom",
                 ),
+                style: TextStyle(color: AppSytles.oxfordBlue),
               ),
             ],
           ),
@@ -621,65 +623,76 @@ class _SocialPageState extends State<SocialPage> {
                                           ),
                                           SizedBox(
                                             height: 200,
-                                            child: ListView.builder(
-                                              scrollDirection: Axis.horizontal,
-                                              itemCount: movies.length,
-                                              itemBuilder:
-                                                  (context, movieIndex) {
-                                                final movie =
-                                                    movies[movieIndex];
-                                                final imageUrl = movie[
-                                                        'imageUrl'] ??
-                                                    ''; // Gestiona valors null
-                                                final platforms = movie[
-                                                        'platforms'] ??
-                                                    []; // Evita null en llistes
+                                            child: movies.isNotEmpty
+                                                ? ListView.builder(
+                                                    scrollDirection:
+                                                        Axis.horizontal,
+                                                    itemCount: movies.length,
+                                                    itemBuilder:
+                                                        (context, movieIndex) {
+                                                      final movie =
+                                                          movies[movieIndex];
+                                                      final imageUrl = movie[
+                                                              'imageUrl'] ??
+                                                          ''; // Gestiona valors null
+                                                      final platforms = movie[
+                                                              'platforms'] ??
+                                                          []; // Evita null en llistes
 
-                                                return Card(
-                                                  color: AppSytles.oxfordBlue,
-                                                  margin: const EdgeInsets
-                                                      .symmetric(
-                                                      horizontal: 8.0),
-                                                  child: Column(
-                                                    children: [
-                                                      Image.network(
-                                                        imageUrl,
-                                                        height: 165,
-                                                        width: 110,
-                                                        fit: BoxFit.cover,
-                                                        errorBuilder: (context,
-                                                            error, stackTrace) {
-                                                          return const SizedBox(
-                                                            height: 165,
-                                                            width: 110,
-                                                            child: Center(
-                                                              child: Icon(
-                                                                  Icons
-                                                                      .broken_image,
-                                                                  size: 50),
+                                                      return Card(
+                                                        color: AppSytles
+                                                            .oxfordBlue,
+                                                        margin: const EdgeInsets
+                                                            .symmetric(
+                                                            horizontal: 8.0),
+                                                        child: Column(
+                                                          children: [
+                                                            Image.network(
+                                                              imageUrl,
+                                                              height: 165,
+                                                              width: 110,
+                                                              fit: BoxFit.cover,
+                                                              errorBuilder:
+                                                                  (context,
+                                                                      error,
+                                                                      stackTrace) {
+                                                                return const SizedBox(
+                                                                  height: 165,
+                                                                  width: 110,
+                                                                  child: Center(
+                                                                    child: Icon(
+                                                                        Icons
+                                                                            .broken_image,
+                                                                        size:
+                                                                            50),
+                                                                  ),
+                                                                );
+                                                              },
                                                             ),
-                                                          );
-                                                        },
-                                                      ),
-                                                      Padding(
-                                                        padding:
-                                                            const EdgeInsets
-                                                                .only(
-                                                          top: 8.0,
-                                                          left: 4.0,
-                                                          right: 4.0,
+                                                            Padding(
+                                                              padding:
+                                                                  const EdgeInsets
+                                                                      .only(
+                                                                top: 8.0,
+                                                                left: 4.0,
+                                                                right: 4.0,
+                                                              ),
+                                                              child: Text(
+                                                                platforms
+                                                                        .isNotEmpty
+                                                                    ? platforms
+                                                                        .first
+                                                                    : '',
+                                                              ),
+                                                            ),
+                                                          ],
                                                         ),
-                                                        child: Text(
-                                                          platforms.isNotEmpty
-                                                              ? platforms.first
-                                                              : '',
-                                                        ),
-                                                      ),
-                                                    ],
-                                                  ),
-                                                );
-                                              },
-                                            ),
+                                                      );
+                                                    },
+                                                  )
+                                                : const Center(
+                                                    child: Text(
+                                                        'No hi ha pelis per mostrar')),
                                           ),
                                           SizedBox(height: 10),
                                           Padding(
@@ -695,65 +708,76 @@ class _SocialPageState extends State<SocialPage> {
                                           ),
                                           SizedBox(
                                             height: 200,
-                                            child: ListView.builder(
-                                              scrollDirection: Axis.horizontal,
-                                              itemCount: series.length,
-                                              itemBuilder:
-                                                  (context, seriesIndex) {
-                                                final serie =
-                                                    series[seriesIndex];
-                                                final imageUrl = serie[
-                                                        'imageUrl'] ??
-                                                    ''; // Gestiona valors null
-                                                final platforms = serie[
-                                                        'platforms'] ??
-                                                    []; // Evita null en llistes
+                                            child: series.isNotEmpty
+                                                ? ListView.builder(
+                                                    scrollDirection:
+                                                        Axis.horizontal,
+                                                    itemCount: series.length,
+                                                    itemBuilder:
+                                                        (context, seriesIndex) {
+                                                      final serie =
+                                                          series[seriesIndex];
+                                                      final imageUrl = serie[
+                                                              'imageUrl'] ??
+                                                          ''; // Gestiona valors null
+                                                      final platforms = serie[
+                                                              'platforms'] ??
+                                                          []; // Evita null en llistes
 
-                                                return Card(
-                                                  color: AppSytles.oxfordBlue,
-                                                  margin: const EdgeInsets
-                                                      .symmetric(
-                                                      horizontal: 8.0),
-                                                  child: Column(
-                                                    children: [
-                                                      Image.network(
-                                                        imageUrl,
-                                                        height: 165,
-                                                        width: 110,
-                                                        fit: BoxFit.cover,
-                                                        errorBuilder: (context,
-                                                            error, stackTrace) {
-                                                          return const SizedBox(
-                                                            height: 165,
-                                                            width: 110,
-                                                            child: Center(
-                                                              child: Icon(
-                                                                  Icons
-                                                                      .broken_image,
-                                                                  size: 50),
+                                                      return Card(
+                                                        color: AppSytles
+                                                            .oxfordBlue,
+                                                        margin: const EdgeInsets
+                                                            .symmetric(
+                                                            horizontal: 8.0),
+                                                        child: Column(
+                                                          children: [
+                                                            Image.network(
+                                                              imageUrl,
+                                                              height: 165,
+                                                              width: 110,
+                                                              fit: BoxFit.cover,
+                                                              errorBuilder:
+                                                                  (context,
+                                                                      error,
+                                                                      stackTrace) {
+                                                                return const SizedBox(
+                                                                  height: 165,
+                                                                  width: 110,
+                                                                  child: Center(
+                                                                    child: Icon(
+                                                                        Icons
+                                                                            .broken_image,
+                                                                        size:
+                                                                            50),
+                                                                  ),
+                                                                );
+                                                              },
                                                             ),
-                                                          );
-                                                        },
-                                                      ),
-                                                      Padding(
-                                                        padding:
-                                                            const EdgeInsets
-                                                                .only(
-                                                          top: 8.0,
-                                                          left: 4.0,
-                                                          right: 4.0,
+                                                            Padding(
+                                                              padding:
+                                                                  const EdgeInsets
+                                                                      .only(
+                                                                top: 8.0,
+                                                                left: 4.0,
+                                                                right: 4.0,
+                                                              ),
+                                                              child: Text(
+                                                                platforms
+                                                                        .isNotEmpty
+                                                                    ? platforms
+                                                                        .first
+                                                                    : '',
+                                                              ),
+                                                            ),
+                                                          ],
                                                         ),
-                                                        child: Text(
-                                                          platforms.isNotEmpty
-                                                              ? platforms.first
-                                                              : '',
-                                                        ),
-                                                      ),
-                                                    ],
-                                                  ),
-                                                );
-                                              },
-                                            ),
+                                                      );
+                                                    },
+                                                  )
+                                                : const Center(
+                                                    child: Text(
+                                                        'No hi ha series per mostrar')),
                                           ),
                                           SizedBox(height: 15),
                                         ],
