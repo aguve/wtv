@@ -199,7 +199,7 @@ class _SocialPageState extends State<SocialPage> {
                   // Si el correu no existeix, mostrar un missatge
                   if (mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                      content: Text("El correu no existeix a Firebase!"),
+                      content: Text("No hi ha un usuari amb aquest correu!"),
                     ));
                     Navigator.pop(context); // Tancar el popup
                   }
@@ -495,6 +495,7 @@ class _SocialPageState extends State<SocialPage> {
                                   subtitle: Text(
                                       "Tags: ${group['tags'].join(', ')}"), // Mostrar tags del grup
                                   onTap: () {
+                                    index = -1;
                                     setState(() {
                                       _selectedGroupIndex = index;
                                     });
